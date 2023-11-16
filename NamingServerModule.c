@@ -13,6 +13,8 @@
 #define HEARTBEAT_INTERVAL 5
 #define MAX_CACHE_SIZE 100
 #define LOCALIPADDRESS "192.168.1.1"
+#define CMD_READ "READ"
+#define CMD_WRITE "WRITE"
 
 typedef struct FileSystem {
     // Simplified for example
@@ -175,17 +177,41 @@ void startStorageServerListener() {
 
 void* clientRequestHandler(void* arg) {
     int clientSocket = *(int*)arg;
+    char buffer[1024];
+    ssize_t readSize;
 
     // Read request from client
-    char buffer[1024];
-    read(clientSocket, buffer, sizeof(buffer));
+    readSize = read(clientSocket, buffer, sizeof(buffer) - 1);
+    if (readSize <= 0) {
+        perror("Client read error");
+        close(clientSocket);
+        return NULL;
+    }
 
-    // Parse and handle request
-    // ...
+    buffer[readSize] = '\0'; // Null-terminate the string
+
+    // Parse the request
+    char *command, *arg1, *arg2;
+    command = strtok(buffer, " ");
+    arg1 = strtok(NULL, " ");
+    arg2 = strtok(NULL, " ");
+
+    if (command != NULL) {
+        printf("Received command: %s\n", command);
+        if (strcmp(command, CMD_READ) == 0) {
+            // Handle READ command
+            // Read file specified in arg1 and send data back to client
+        } else if (strcmp(command, CMD_WRITE) == 0) {
+            // Handle WRITE command
+            // Write data specified in arg2 to file specified in arg1
+        }
+        // ... handle other commands
+    }
 
     close(clientSocket);
     return NULL;
 }
+
 
 void handleClientRequest() {
     printf("Starting to accept client requests...\n");
@@ -217,17 +243,85 @@ void handleClientRequest() {
 
 
 
+void sendCommandToServer(const char* serverIP, int port, const char* command) {
+    int sock;
+    struct sockaddr_in server;
+    char server_reply[2000];
+
+    // Create socket
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock == -1) {
+        printf("Could not create socket");
+    }
+    
+    server.sin_addr.s_addr = inet_addr(serverIP);
+    server.sin_family = AF_INET;
+    server.sin_port = htons(port);
+
+    // Connect to remote server
+    if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
+        perror("connect failed. Error");
+        return;
+    }
+
+    // Send some data
+    if (send(sock, command, strlen(command), 0) < 0) {
+        puts("Send failed");
+        return;
+    }
+
+    // Receive a reply from the server
+    if (recv(sock, server_reply, 2000, 0) < 0) {
+        puts("recv failed");
+    }
+
+    puts("Server reply :");
+    puts(server_reply);
+
+    close(sock);
+}
+
+void createFileOrDirectory(const char* serverIP, int port, const char* path, int isDirectory) {
+    char command[1024];
+    sprintf(command, "CREATE %s %d", path, isDirectory);
+    sendCommandToServer(serverIP, port, command);
+}
+
+void deleteFileOrDirectory(const char* serverIP, int port, const char* path) {
+    char command[1024];
+    sprintf(command, "DELETE %s", path);
+    sendCommandToServer(serverIP, port, command);
+}
+
+void copyFileOrDirectory(const char* sourceIP, int sourcePort, const char* destinationIP, int destinationPort, const char* sourcePath, const char* destinationPath) {
+    char command[1024];
+    sprintf(command, "COPY %s %s:%d %s", sourcePath, destinationIP, destinationPort, destinationPath);
+    sendCommandToServer(sourceIP, sourcePort, command);
+}
+
+
+
 int main() {
     // Initialize the Naming Server
     initializeNamingServer();
 
-    // Start a thread to detect Storage Server
-    startStorageServerListener();
+    pthread_t storageThread, clientThread;
 
+    // Create a thread to detect Storage Server
+    if(pthread_create(&storageThread, NULL, startStorageServerListener, NULL)) {
+        fprintf(stderr, "Error creating storage server listener thread\n");
+        return 1;
+    }
 
-    // Start accepting client requests
-    handleClientRequest();
+    // Create a thread to handle client requests
+    if(pthread_create(&clientThread, NULL, handleClientRequest, NULL)) {
+        fprintf(stderr, "Error creating client request handler thread\n");
+        return 1;
+    }
 
+    // Wait for both threads to finish
+    pthread_join(storageThread, NULL);
+    pthread_join(clientThread, NULL);
 
     // The rest of the main function
     // ...
