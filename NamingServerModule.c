@@ -9,7 +9,8 @@
 
 #define MAX_STORAGE_SERVERS 10
 #define MAX_CLIENTS 100
-#define NAMING_SERVER_PORT 8000
+#define NAMING_CLIENT_PORT 8001
+#define NAMING_SS_PORT 8000
 #define HEARTBEAT_INTERVAL 5
 #define MAX_CACHE_SIZE 100
 #define LOCALIPADDRESS "192.168.1.1"
@@ -30,7 +31,7 @@ typedef struct StorageServer {
 } StorageServer;
 
 
-void handleClientRequest();
+void *handleClientRequest();
 FileSystem fileSystem[MAX_STORAGE_SERVERS];
 StorageServer storageServers[MAX_STORAGE_SERVERS];
 int storageServerCount = 0;
@@ -125,7 +126,7 @@ void *handleStorageServer(void *socketDesc) {
     return 0;
 }
 
-void startStorageServerListener() {
+void * startStorageServerListener() {
     int server_fd, new_socket, *new_sock;
     struct sockaddr_in address;
     int addrlen = sizeof(address);
@@ -141,7 +142,7 @@ void startStorageServerListener() {
     // address.sin_addr.s_addr = LOCALIPADDRESS;
     address.sin_addr.s_addr = INADDR_ANY;
     
-    address.sin_port = htons(NAMING_SERVER_PORT);
+    address.sin_port = htons(NAMING_SS_PORT);
 
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
         perror("bind failed");
@@ -213,32 +214,59 @@ void* clientRequestHandler(void* arg) {
 }
 
 
-void handleClientRequest() {
-    printf("Starting to accept client requests...\n");
+void *handleClientRequest() {
+    int server_fd, clientSocket, *new_sock;
+    struct sockaddr_in address;
+    int addrlen = sizeof(address);
 
-    int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port = htons(NAMING_SERVER_PORT);
+    // Creating socket file descriptor for client connections
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
 
-    bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
-    listen(serverSocket, MAX_CLIENTS);
+    printf("Naming Server listening for client connections...\n");
 
-    while (1) {
-        struct sockaddr_in clientAddr;
-        socklen_t clientAddrLen = sizeof(clientAddr);
-        int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
+    // Bind the socket to the client port
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(NAMING_CLIENT_PORT);
 
-        if (clientSocket < 0) {
-            perror("Error accepting client connection");
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Naming Server binded for client connections...\n");
+
+    // Start listening for incoming client connections
+    if (listen(server_fd, MAX_CLIENTS) < 0) {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Naming Server connected for client connections...\n");
+
+    while(1) {
+        if ((accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
+            perror("accept");
             continue;
         }
+        printf("Client connected...\n");
+        pthread_t client_thread;
+        new_sock = malloc(sizeof(int));
+        *new_sock = clientSocket;
 
-        pthread_t threadId;
-        pthread_create(&threadId, NULL, clientRequestHandler, &clientSocket);
+        if (pthread_create(&client_thread, NULL, clientRequestHandler, (void*) new_sock) < 0) {
+            perror("could not create thread");
+            free(new_sock);
+        }
+
+        pthread_detach(client_thread); // Detach the thread for asynchronous handling
     }
 }
+
+
 
 
 
