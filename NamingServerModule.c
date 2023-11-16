@@ -58,11 +58,55 @@ void registerStorageServer(char* ipAddress, int nmPort, int clientPort, char* ac
     }
 }
 
+pthread_mutex_t storageServerMutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *handleStorageServer(void *socketDesc) {
-    // Code to handle a connected storage server
     int sock = *(int*)socketDesc;
-    // Handle storage server logic here
+    char buffer[1024]; // Adjust size as needed
+    int readSize;
+
+    // Read data from the socket
+    if ((readSize = recv(sock, buffer, sizeof(buffer), 0)) > 0) {
+        buffer[readSize] = '\0';
+
+        // Parse data to extract Storage Server details
+        // For example, if the data is sent as a comma-separated string
+        char *token;
+        char *rest = buffer;
+        StorageServer newServer;
+
+        // Extract IP Address
+        token = strtok_r(rest, ",", &rest);
+        strncpy(newServer.ipAddress, token, sizeof(newServer.ipAddress));
+
+        // Extract NM Port
+        token = strtok_r(rest, ",", &rest);
+        newServer.nmPort = atoi(token);
+
+        // Extract Client Port
+        token = strtok_r(rest, ",", &rest);
+        newServer.clientPort = atoi(token);
+
+        // Extract Accessible Paths
+        token = strtok_r(rest, ",", &rest);
+        strncpy(newServer.accessiblePaths, token, sizeof(newServer.accessiblePaths));
+
+        // Lock mutex before updating global storage server array
+        pthread_mutex_lock(&storageServerMutex);
+        if (storageServerCount < MAX_STORAGE_SERVERS) {
+            storageServers[storageServerCount++] = newServer;
+            pthread_mutex_unlock(&storageServerMutex);
+
+            // Send ACK
+            const char* ackMessage = "Registration Successful";
+            send(sock, ackMessage, strlen(ackMessage), 0);
+        } else {
+            pthread_mutex_unlock(&storageServerMutex);
+            // Send server limit reached message
+            const char* limitMessage = "Storage server limit reached";
+            send(sock, limitMessage, strlen(limitMessage), 0);
+        }
+    }
 
     close(sock);
     free(socketDesc);
