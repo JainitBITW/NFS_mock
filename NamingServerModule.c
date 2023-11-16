@@ -12,6 +12,7 @@
 #define NAMING_SERVER_PORT 8000
 #define HEARTBEAT_INTERVAL 5
 #define MAX_CACHE_SIZE 100
+#define LOCALIPADDRESS "127.0.0.1"
 
 typedef struct FileSystem {
     // Simplified for example
@@ -126,7 +127,7 @@ void startStorageServerListener() {
 
     // Bind the socket to the port
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY; // Bind to any address
+    address.sin_addr.s_addr = LOCALIPADDRESS;
     address.sin_port = htons(NAMING_SERVER_PORT);
 
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
