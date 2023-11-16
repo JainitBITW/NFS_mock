@@ -12,7 +12,7 @@
 #define NAMING_SERVER_PORT 8000
 #define HEARTBEAT_INTERVAL 5
 #define MAX_CACHE_SIZE 100
-#define LOCALIPADDRESS "127.0.0.1"
+#define LOCALIPADDRESS "192.168.1.1"
 
 typedef struct FileSystem {
     // Simplified for example
@@ -92,11 +92,20 @@ void *handleStorageServer(void *socketDesc) {
         token = strtok_r(rest, ",", &rest);
         strncpy(newServer.accessiblePaths, token, sizeof(newServer.accessiblePaths));
 
+
+
         // Lock mutex before updating global storage server array
         pthread_mutex_lock(&storageServerMutex);
         if (storageServerCount < MAX_STORAGE_SERVERS) {
             storageServers[storageServerCount++] = newServer;
             pthread_mutex_unlock(&storageServerMutex);
+            
+            // Printing
+            printf("Received storage server details:\n");
+            printf("IP Address: %s\n", newServer.ipAddress);
+            printf("NM Port: %d\n", newServer.nmPort);
+            printf("Client Port: %d\n", newServer.clientPort);
+            printf("Accessible Paths: %s\n", newServer.accessiblePaths);
 
             // Send ACK
             const char* ackMessage = "Registration Successful";
@@ -127,7 +136,9 @@ void startStorageServerListener() {
 
     // Bind the socket to the port
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = LOCALIPADDRESS;
+    // address.sin_addr.s_addr = LOCALIPADDRESS;
+    address.sin_addr.s_addr = INADDR_ANY;
+    
     address.sin_port = htons(NAMING_SERVER_PORT);
 
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
