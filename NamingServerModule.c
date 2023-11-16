@@ -9,7 +9,7 @@
 
 #define MAX_STORAGE_SERVERS 10
 #define MAX_CLIENTS 100
-#define NAMING_SERVER_PORT 12345
+#define NAMING_SERVER_PORT 8000
 #define HEARTBEAT_INTERVAL 5
 #define MAX_CACHE_SIZE 100
 
@@ -26,25 +26,21 @@ typedef struct StorageServer {
     // Other metadata as needed
 } StorageServer;
 
+
 void handleClientRequest();
-FileSystem fileSystem;
+FileSystem fileSystem[MAX_STORAGE_SERVERS];
 StorageServer storageServers[MAX_STORAGE_SERVERS];
 int storageServerCount = 0;
 
 void initializeNamingServer() {
     printf("Initializing Naming Server...\n");
     // Initialize file system and directory structure
-    memset(fileSystem.fileTree, 0, sizeof(fileSystem.fileTree));
+    memset(fileSystem, 0, sizeof(fileSystem));
 
     // Initialize storage server list
     memset(storageServers, 0, sizeof(storageServers));
     storageServerCount = 0;
 
-    // Additional NM initialization steps here
-    // ...
-
-    // Start accepting client requests
-    handleClientRequest();
 }
 
 
@@ -63,15 +59,63 @@ void registerStorageServer(char* ipAddress, int nmPort, int clientPort, char* ac
 }
 
 
-void simulateStorageServersInitialization() {
-    // Initialize SS_1
-    registerStorageServer("192.168.1.1", 12346, 12356, "/path/to/files1");
+void *handleStorageServer(void *socketDesc) {
+    // Code to handle a connected storage server
+    int sock = *(int*)socketDesc;
+    // Handle storage server logic here
 
-    // Initialize other SSs (SS_2 to SS_n)
-    // ... (Repeat for other storage servers)
+    close(sock);
+    free(socketDesc);
+    return 0;
 }
 
+void startStorageServerListener() {
+    int server_fd, new_socket, *new_sock;
+    struct sockaddr_in address;
+    int addrlen = sizeof(address);
 
+    // Creating socket file descriptor
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Bind the socket to the port
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY; // Bind to any address
+    address.sin_port = htons(NAMING_SERVER_PORT);
+
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Start listening for incoming connections
+    if (listen(server_fd, MAX_STORAGE_SERVERS) < 0) {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    while(1) {
+        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
+            perror("accept");
+            continue;
+        }
+
+        pthread_t sn_thread;
+        new_sock = malloc(sizeof(int));
+        *new_sock = new_socket;
+
+        if (pthread_create(&sn_thread, NULL, handleStorageServer, (void*) new_sock) < 0) {
+            perror("could not create thread");
+            free(new_sock);
+        }
+
+        // Optionally, join the thread or detach it
+        // pthread_join(sn_thread, NULL); // For synchronous handling
+        pthread_detach(sn_thread); // For asynchronous handling
+    }
+}
 
 void* clientRequestHandler(void* arg) {
     int clientSocket = *(int*)arg;
@@ -115,98 +159,19 @@ void handleClientRequest() {
 }
 
 
-// Function to instruct a storage server to perform an action
-void instructStorageServer(int serverIndex, char* instruction) {
-    // Assuming serverIndex is valid and within range
-    StorageServer server = storageServers[serverIndex];
 
-    // Create socket and connect to the storage server
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(server.nmPort); // or server.clientPort, based on your use case
-    inet_pton(AF_INET, server.ipAddress, &serverAddr.sin_addr);
-
-    connect(sock, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
-
-    // Send instruction
-    send(sock, instruction, strlen(instruction), 0);
-
-    // Read response (assuming the storage server sends a response)
-    char response[1024];
-    read(sock, response, sizeof(response));
-    printf("Response from Storage Server: %s\n", response);
-
-    // Close socket
-    close(sock);
-}
-
-
-// Function to search for a file within the file system
-int searchForFile(const char* filename) {
-    // Traverse the fileTree to find the file
-    // This is a placeholder logic
-    if (strstr(fileSystem.fileTree, filename) != NULL) {
-        // File found, return index or relevant information
-        return 1; // Placeholder for actual file location/index
-    }
-    return -1; // File not found
-}
-
-
-// Function to cache search results
-typedef struct CacheEntry {
-    char filename[256];
-    int location; // Storage server index or other identifier
-    // ... Other metadata
-} CacheEntry;
-
-CacheEntry searchCache[MAX_CACHE_SIZE];
-int cacheEntries = 0;
-
-void cacheSearchResult(const char* filename, int location) {
-    // Check if cache is full and implement eviction if necessary
-    // Here we'll just add to cache assuming it's not full
-
-    if (cacheEntries < MAX_CACHE_SIZE) {
-        CacheEntry entry;
-        strcpy(entry.filename, filename);
-        entry.location = location;
-        searchCache[cacheEntries++] = entry;
-    } else {
-        // Implement cache eviction logic here
-    }
-}
-
-
-// Function to detect a failure in a storage server
-void* detectStorageServerFailure(void* arg) {
-    while (1) {
-        for (int i = 0; i < storageServerCount; i++) {
-            // Send heartbeat message to each storage server
-            // Expect a response within a certain timeout
-            // If no response, mark the server as failed and handle it
-        }
-        sleep(HEARTBEAT_INTERVAL);
-    }
-}
-
-// Function to handle replication and redundancy
-void handleReplication() {
-    // Iterate over files in the file system
-    // For each file, check if it's replicated according to policy
-    // If not, replicate it to other storage servers
-}
-
-// Assume that these functions are running within a server context
-// and that proper synchronization (mutexes, etc.) is used where necessary.
 
 int main() {
     // Initialize the Naming Server
     initializeNamingServer();
 
-    // Simulate the initialization of Storage Servers
-    simulateStorageServersInitialization();
+    // Start a thread to detect Storage Server
+    startStorageServerListener();
+
+
+    // Start accepting client requests
+    handleClientRequest();
+
 
     // The rest of the main function
     // ...
