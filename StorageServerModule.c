@@ -34,6 +34,8 @@ typedef struct StorageServer {
     int nmPort;          // Port for NM Connection
     int clientPort;      // Port for Client Connection
     char accessiblePaths[1000][1000]; // List of accessible paths
+    int numPaths ; 
+
     // Other metadata as needed
 } StorageServer;
 
@@ -53,6 +55,7 @@ void registerStorageServer(char *ipAddress, int nmPort, int clientPort, char *ac
     ss.nmPort = nmPort;
     ss.clientPort = clientPort;
     strcpy(ss.accessiblePaths[0], accessiblePaths);
+    ss.numPaths=1;
 }
 
 void initializeStorageServer()

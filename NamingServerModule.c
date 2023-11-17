@@ -28,6 +28,7 @@ typedef struct StorageServer
     char ipAddress[16];         // IPv4 Address
     int nmPort;                 // Port for NM Connection
     int clientPort;             // Port for Client Connection
+    int numPaths; 
     char accessiblePaths[1000][1000]; // List of accessible paths
     // Other metadata as needed
 } StorageServer;
@@ -48,24 +49,7 @@ void initializeNamingServer()
     storageServerCount = 0;
 }
 
-void registerStorageServer(char *ipAddress, int nmPort, int clientPort, char *accessiblePaths)
-{
-    if (storageServerCount < MAX_STORAGE_SERVERS)
-    {
-        StorageServer server;
-        strcpy(server.ipAddress, ipAddress);
-        server.nmPort = nmPort;
-        server.clientPort = clientPort;
-        strcpy(server.accessiblePaths[0], accessiblePaths);
-
-        storageServers[storageServerCount++] = server;
-    }
-    else
-    {
-        printf("Storage server limit reached.\n");
-    }
-}
-
+// 
 pthread_mutex_t storageServerMutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *handleStorageServer(void *socketDesc)
@@ -244,24 +228,24 @@ void *handleClientRequest() {
     }
 }
 
-void sendCommandToStorageServers(const char *command) {
-    char word[1024]; // Adjust size as needed
-    char path[1024]; // Adjust size as needed
+// void sendCommandToStorageServers(const char *command) {
+//     char word[1024]; // Adjust size as needed
+//     char path[1024]; // Adjust size as needed
 
-    sscanf(command, "%s %s", word, path); // Extract WORD and PATH from the command
-    int sentFlag = 0;
-    for (int i = 0; i < storageServerCount; i++) {
-        if (strstr(storageServers[i].accessiblePaths, path) != NULL) {
-            // If path is in accessiblePaths of storageServers[i]
-            sendCommandToServer(storageServers[i].ipAddress, storageServers[i].clientPort, command);
-            sentFlag = 1;
-            break;
-        }
-    }
-    if(sentFlag==0) {
-        sendCommandToServer(storageServers[0].ipAddress, storageServers[0].clientPort, command);
-    }
-}
+//     sscanf(command, "%s %s", word, path); // Extract WORD and PATH from the command
+//     int sentFlag = 0;
+//     for (int i = 0; i < storageServerCount; i++) {
+//         if (strstr(storageServers[i].accessiblePaths, path) != NULL) {
+//             // If path is in accessiblePaths of storageServers[i]
+//             sendCommandToServer(storageServers[i].ipAddress, storageServers[i].clientPort, command);
+//             sentFlag = 1;
+//             break;
+//         }
+//     }
+//     if(sentFlag==0) {
+//         sendCommandToServer(storageServers[0].ipAddress, storageServers[0].clientPort, command);
+//     }
+// }
 
 void sendCommandToServer(const char *serverIP, int port, const char *command)
 {
