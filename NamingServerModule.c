@@ -23,15 +23,15 @@
 //     char fileTree[1000]; // Placeholder for file tree representation
 // } FileSystem;
 
-typedef struct StorageServer
-{
-	char ipAddress[16]; // IPv4 Address
-	int nmPort; // Port for NM Connection
-	int clientPort; // Port for Client Connection
-	int numPaths;
-	char accessiblePaths[1000][1000]; // List of accessible paths
-	// Other metadata as needed
+typedef struct StorageServer {
+    char ipAddress[16];  // IPv4 Address
+    int nmPort;          // Port for NM Connection
+    int clientPort;      // Port for Client Connection
+    int numPaths ; 
+    char accessiblePaths[1000][1000]; // List of accessible paths
+    // Other metadata as needed
 } StorageServer;
+
 
 void* handleClientRequest();
 // FileSystem fileSystem[MAX_STORAGE_SERVERS];
@@ -48,6 +48,8 @@ void initializeNamingServer()
 	memset(storageServers, 0, sizeof(storageServers));
 	storageServerCount = 0;
 }
+
+
 
 //
 pthread_mutex_t storageServerMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -81,7 +83,13 @@ void* handleStorageServer(void* socketDesc)
 			printf("IP Address: %s\n", newServer.ipAddress);
 			printf("NM Port: %d\n", newServer.nmPort);
 			printf("Client Port: %d\n", newServer.clientPort);
-			printf("Accessible Paths: %s\n", newServer.accessiblePaths);
+			// printf("Accessible Paths: %s\n", newServer.accessiblePaths);
+            printf("NUM PATHS: %d\n", newServer.numPaths);
+            for ( int path_no =0 ; path_no< newServer.numPaths; path_no++)
+            {
+                printf("Accessible Paths: %s\n", newServer.accessiblePaths[path_no]);
+            }
+            
 
 			// Send ACK
 			const char* ackMessage = "Registration Successful";

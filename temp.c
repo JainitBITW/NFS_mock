@@ -90,4 +90,3 @@ void closeConnection(int client_socket, struct sockaddr_in client_address) {
     close(client_socket);
     printf("Connection closed by %s:%d\n", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
 }
-qq

@@ -9,6 +9,8 @@
 #include <arpa/inet.h>
 #include <sys/stat.h>
 #include <stdio.h>
+#include <dirent.h>
+
 
 
 #define NMIPADDRESS "127.0.0.1"
@@ -21,7 +23,7 @@
 
 // OutGoing Connection
 #define NAMING_SERVER_PORT 8000
-#define MOUNT "storage/1"
+#define MOUNT "./src"
 
 typedef struct FileSystem
 {
@@ -33,9 +35,8 @@ typedef struct StorageServer {
     char ipAddress[16];  // IPv4 Address
     int nmPort;          // Port for NM Connection
     int clientPort;      // Port for Client Connection
-    char accessiblePaths[1000][1000]; // List of accessible paths
     int numPaths ; 
-
+    char accessiblePaths[1000][1000]; // List of accessible paths
     // Other metadata as needed
 } StorageServer;
 
@@ -49,13 +50,61 @@ void handleClientRequest();
 FileSystem fileSystem;
 StorageServer ss;
 
+
+
+void update_accessible_paths_recursive(char *path) {
+    DIR *dir;
+    struct dirent *entry;
+
+    // Open the directory
+    dir = opendir(path);
+
+    if (dir == NULL) {
+        perror("opendir");
+        return;
+    }
+
+    // Iterate over entries in the directory
+    while ((entry = readdir(dir)) != NULL) {
+        // Skip "." and ".."
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        // Create the full path of the entry
+        char full_path[PATH_MAX];
+        snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+        // update to accessible paths 
+        strcpy(ss.accessiblePaths[ss.numPaths],full_path);
+        printf("PATH %s\n ", full_path );
+        ss.numPaths++;
+        
+
+        // If it's a directory, recursively call the function
+        if (entry->d_type == DT_DIR) {
+            update_accessible_paths_recursive(full_path);
+        }
+    }
+
+    // Close the directory
+    closedir(dir);
+}
 void registerStorageServer(char *ipAddress, int nmPort, int clientPort, char *accessiblePaths)
 {
     strcpy(ss.ipAddress, ipAddress);
     ss.nmPort = nmPort;
     ss.clientPort = clientPort;
-    strcpy(ss.accessiblePaths[0], accessiblePaths);
+    strcpy(ss.accessiblePaths[0], MOUNT);
+    // update initial accessible paths 
     ss.numPaths=1;
+    // char * path ; 
+    // strcpy(path,accessiblePaths);
+    update_accessible_paths_recursive(accessiblePaths);
+
+    // for (int i = 0; i < ss.numPaths; i++) {
+    //     printf("%s\n", ss.accessiblePaths[i]);
+    // }
 }
 
 void initializeStorageServer()
@@ -98,10 +147,11 @@ void reportToNamingServer(StorageServer *server)
         exit(EXIT_FAILURE);
     }
 
-    char* buffer[sizeof( StorageServer)];
+    char buffer[sizeof( StorageServer)];
     printf("Size of StorageServer : %d\n",sizeof( StorageServer));
     printf("Size of buffer : %d\n",sizeof(buffer));
-    printf("Size of server : %d\n",sizeof(server));
+    printf("Size of server : %d\n",sizeof(*server));
+    printf("address of server : %d\n",server->numPaths);
     memcpy(buffer , server , sizeof( StorageServer));
     if (send(sock, buffer, sizeof(buffer), 0) < 0) {
         perror("Failed to send storage server data");
@@ -509,8 +559,9 @@ void *handleStorageServerConnections(void *args)
 // The main function could set up the storage server.
 int main(int argc, char *argv[])
 {
+    // printf("Storage Server\n");
     initializeStorageServer();
-
+    printf("%d \n This ", ss.numPaths);
     // Report to the naming server
     reportToNamingServer(&ss);
 
