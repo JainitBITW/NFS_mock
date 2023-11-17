@@ -6,31 +6,29 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define SERVER_IP "192.168.1.1" // Replace with your server's IP address
-#define SERVER_PORT 8001       // Replace with the port your server is listening on
-
-void sendCommand(int sockfd, const char* command) {
-    if (send(sockfd, command, strlen(command), 0) < 0) {
-        perror("Send failed");
-        exit(EXIT_FAILURE);
-    }
-}
+#define NMIPADDRESS "127.0.0.2"
+#define SERVER_PORT 4000
 
 int main() {
+    printf("Start\n");
     struct sockaddr_in serverAddr;
     int sock;
+    const char* message = "READ storage/1/check.txt";
 
-    // Create socket
+    printf("Starting client...\n");
+
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("Could not create socket");
         return 1;
     }
 
-    serverAddr.sin_addr.s_addr = inet_addr(SERVER_IP);
+    printf("Socket created.\n");
+    serverAddr.sin_addr.s_addr = inet_addr(NMIPADDRESS);
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(SERVER_PORT);
 
-    // Connect to the server
+    printf("Connecting to %s:%d\n", NMIPADDRESS, SERVER_PORT);
+
     if (connect(sock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
         perror("Connect failed. Error");
         return 1;
@@ -38,14 +36,36 @@ int main() {
 
     printf("Connected to the server.\n");
 
-    // Sending a series of test commands to the server
-    sendCommand(sock, "READ /path/to/file\n");
-    sendCommand(sock, "WRITE /path/to/otherfile Some data to write\n");
-    // ... Add more commands as needed for testing
+    if (send(sock, message, strlen(message), 0) < 0) {
+        perror("Send failed");
+        close(sock);
+        exit(EXIT_FAILURE);
+    }
 
-    printf("Commands sent.\n");
+    printf("Message sent. Waiting for response...\n");
 
-    // Close the socket
+    // Receiving response from server
+    char buffer[1024];
+    int totalRead = 0;
+    while (1) {
+        int readSize = recv(sock, buffer + totalRead, sizeof(buffer) - totalRead - 1, 0);
+        if (readSize > 0) {
+            totalRead += readSize;
+            buffer[totalRead] = '\0';
+            if (totalRead > 0 && buffer[totalRead - 1] == '\n') { // End of message character
+                break;
+            }
+        } else if (readSize == 0) {
+            printf("Server closed the connection\n");
+            break;
+        } else {
+            perror("recv failed");
+            break;
+        }
+    }
+
+    printf("Server reply: %s\n", buffer);
+
     close(sock);
     printf("Disconnected from server.\n");
 
