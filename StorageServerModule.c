@@ -201,7 +201,7 @@ void *executeClientRequest(void *arg)
                 fileContent[bytesRead] = '\0';
                 printf("File content: %s\n", fileContent);
                 send(clientSocket, fileContent, bytesRead, 0);
-                printf("SGSAD");
+               
             }
             fclose(file);
         }

@@ -6,7 +6,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
+#include <ctype.h>
 #define MAX_STORAGE_SERVERS 10
 #define MAX_CLIENTS 100
 #define NAMING_CLIENT_LISTEN_PORT 8001
@@ -23,15 +23,15 @@
 //     char fileTree[1000]; // Placeholder for file tree representation
 // } FileSystem;
 
-typedef struct StorageServer {
-    char ipAddress[16];  // IPv4 Address
-    int nmPort;          // Port for NM Connection
-    int clientPort;      // Port for Client Connection
-    int numPaths ; 
-    char accessiblePaths[1000][1000]; // List of accessible paths
-    // Other metadata as needed
+typedef struct StorageServer
+{
+	char ipAddress[16]; // IPv4 Address
+	int nmPort; // Port for NM Connection
+	int clientPort; // Port for Client Connection
+	int numPaths;
+	char accessiblePaths[1000][1000]; // List of accessible paths
+	// Other metadata as needed
 } StorageServer;
-
 
 void* handleClientRequest();
 // FileSystem fileSystem[MAX_STORAGE_SERVERS];
@@ -48,8 +48,6 @@ void initializeNamingServer()
 	memset(storageServers, 0, sizeof(storageServers));
 	storageServerCount = 0;
 }
-
-
 
 //
 pthread_mutex_t storageServerMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -84,12 +82,11 @@ void* handleStorageServer(void* socketDesc)
 			printf("NM Port: %d\n", newServer.nmPort);
 			printf("Client Port: %d\n", newServer.clientPort);
 			// printf("Accessible Paths: %s\n", newServer.accessiblePaths);
-            printf("NUM PATHS: %d\n", newServer.numPaths);
-            for ( int path_no =0 ; path_no< newServer.numPaths; path_no++)
-            {
-                printf("Accessible Paths: %s\n", newServer.accessiblePaths[path_no]);
-            }
-            
+			printf("NUM PATHS: %d\n", newServer.numPaths);
+			for(int path_no = 0; path_no < newServer.numPaths; path_no++)
+			{
+				printf("Accessible Paths: %s\n", newServer.accessiblePaths[path_no]);
+			}
 
 			// Send ACK
 			const char* ackMessage = "Registration Successful";
@@ -197,7 +194,12 @@ void* handleClientInput(void* socketDesc)
 			// path is tokenArray[1]
 			char path[1024];
 			strcpy(path, tokenArray[1]);
-            path[strlen(path)-1]="\0";
+			// strip the path of white spaces
+			int len = strlen(path);
+			if(isspace(path[len - 1]))
+			{
+				path[len - 1] = '\0';
+			}
 
 			// compare the paths of all storage servers from storageServers array
 			// if the path is found in the accessiblePaths of a storage server
@@ -207,24 +209,22 @@ void* handleClientInput(void* socketDesc)
 			int port_ss;
 			for(int i = 0; i < storageServerCount; i++)
 			{
-                for (int j = 0; j < storageServers[i].numPaths; j++)
-                {
-                    if (strcmp(storageServers[i].accessiblePaths[j], path) == 0)
-                    {
-                        // If path is in accessiblePaths of storageServer
-                        // send read request to that storage server
-                        strcpy(ip_Address_ss, storageServers[i].ipAddress);
-                        port_ss = storageServers[i].clientPort;
-                        foundFlag = 1;
-                        break;
-                    }
-
-                }
-                if(foundFlag == 1)
-                {
-                    break;
-                }
-				
+				for(int j = 0; j < storageServers[i].numPaths; j++)
+				{
+					if(strcmp(storageServers[i].accessiblePaths[j], path) == 0)
+					{
+						// If path is in accessiblePaths of storageServer
+						// send read request to that storage server
+						strcpy(ip_Address_ss, storageServers[i].ipAddress);
+						port_ss = storageServers[i].clientPort;
+						foundFlag = 1;
+						break;
+					}
+				}
+				if(foundFlag == 1)
+				{
+					break;
+				}
 			}
 			if(foundFlag == 1)
 			{
