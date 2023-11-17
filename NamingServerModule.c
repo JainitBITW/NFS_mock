@@ -197,6 +197,7 @@ void* handleClientInput(void* socketDesc)
 			// path is tokenArray[1]
 			char path[1024];
 			strcpy(path, tokenArray[1]);
+            path[strlen(path)-1]="\0";
 
 			// compare the paths of all storage servers from storageServers array
 			// if the path is found in the accessiblePaths of a storage server
