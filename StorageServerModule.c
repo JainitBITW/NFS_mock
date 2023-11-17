@@ -17,6 +17,7 @@
 // Incomming Connection
 #define CLIENT_PORT 4000
 #define NM_PORT 5000
+#define SS_PORT 6000
 
 // OutGoing Connection
 #define NAMING_SERVER_PORT 8000
@@ -205,7 +206,86 @@ void *executeClientRequest(void *arg)
     return NULL;
 }
 
+
 void *executeNMRequest(void *arg)
+{
+    ThreadArg *threadArg = (ThreadArg *)arg;
+    char *request = threadArg->request;
+    int NMSocket = threadArg->socket;
+
+    char command[1024];
+    char path[1024];
+    sscanf(request, "%s %s", command, path);
+
+    printf("Command: %s %s\n", command, path);
+
+    if (strcmp(command, "CREATE") == 0)
+    {
+        int pathLength = strlen(path);
+        if (path[pathLength - 1] == '/')
+        { // Check if the path ends with '/'
+            if (mkdir(path, 0777) == -1)
+            { // Attempt to create a directory
+                perror("Error creating directory");
+            }
+            else
+            {
+                printf("Directory created: %s\n", path);
+            }
+        }
+        else
+        { // Treat as file
+            FILE *file = fopen(path, "w");
+            if (file == NULL)
+            {
+                perror("Error creating file");
+            }
+            else
+            {
+                printf("File created: %s\n", path);
+                fclose(file);
+            }
+        }
+    }
+    else if (strcmp(command, "DELETE") == 0)
+    {
+        struct stat path_stat;
+        stat(path, &path_stat);
+        if (S_ISDIR(path_stat.st_mode))
+        { // Check if it's a directory
+            // rmdir only works on empty directories. For non-empty directories, you'll need a more complex function
+            if (rmdir(path) == -1)
+            {
+                perror("Error deleting directory");
+            }
+            else
+            {
+                printf("Directory deleted: %s\n", path);
+            }
+        }
+        else
+        { // Treat as file
+            if (remove(path) == 0)
+            {
+                printf("File deleted: %s\n", path);
+            }
+            else
+            {
+                perror("Error deleting file");
+            }
+        }
+    }
+    else if (strcmp(command, "COPY") == 0)
+    {
+        // Handle copying a file/directory
+    }
+    // Add more conditions as needed
+    free(threadArg); // Free the allocated memory
+    close(NMSocket); // Close the connection
+    return NULL;
+}
+
+void *executeSSRequest(void *arg)
 {
     ThreadArg *threadArg = (ThreadArg *)arg;
     char *request = threadArg->request;
@@ -359,6 +439,70 @@ void *handleNamingServerConnections(void *args)
     return NULL;
 }
 
+void *handleStorageServerConnections(void *args)
+{
+    int server_fd, new_socket, opt = 1;
+    struct sockaddr_in address;
+    int addrlen = sizeof(address);
+
+    // Creating socket file descriptor
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Forcefully attaching socket to the CLIENT_PORT
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
+    {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = inet_addr(SSIPADDRESS); // Listening on SSIPADDRESS
+    address.sin_port = htons(SS_PORT);
+
+    // Bind the socket to the port
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
+    {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Listen for incoming connections
+    if (listen(server_fd, 3) < 0)
+    {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    while (1)
+    {
+        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
+        {
+            perror("accept");
+            continue;
+        }
+
+        // Execute the Command in a new thread so that SS is always listening for new connections
+        ThreadArg *arg = malloc(sizeof(ThreadArg));
+        arg->socket = new_socket;
+        read(new_socket, arg->request, sizeof(arg->request));
+
+        pthread_t tid;
+        if (pthread_create(&tid, NULL, (void *(*)(void *))executeSSRequest, arg) != 0)
+        {
+            perror("Failed to create thread for client request");
+        }
+
+        pthread_detach(tid); // Detach the thread
+    }
+
+    return NULL;
+}
+
+
 // The main function could set up the storage server.
 int main(int argc, char *argv[])
 {
@@ -367,7 +511,7 @@ int main(int argc, char *argv[])
     // Report to the naming server
     reportToNamingServer(&ss);
 
-    pthread_t thread1, thread2;
+    pthread_t thread1, thread2, thread3;
 
     // Create thread for handling client connections
     if (pthread_create(&thread1, NULL, handleClientConnections, NULL) != 0)
@@ -383,9 +527,17 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // Create thread for handling Naming Server connections
+    if (pthread_create(&thread3, NULL, handleStorageServerConnections, NULL) != 0)
+    {
+        perror("Failed to create Naming Server connections thread");
+        return 1;
+    }
+
     // Wait for threads to finish (optional based on your design)
     pthread_join(thread1, NULL);
     pthread_join(thread2, NULL);
+    pthread_join(thread3, NULL);
 
     // Further code to accept connections and handle requests.
 
