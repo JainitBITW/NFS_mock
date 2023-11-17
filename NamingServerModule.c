@@ -168,7 +168,8 @@ void* handleClientInput(void* socketDesc)
 	int sock = *(int*)socketDesc;
 	char buffer[1024];
 	int readSize;
-
+    while(1)
+    {
 	if((readSize = recv(sock, buffer, sizeof(buffer), 0)) > 0)
 	{
 		buffer[readSize] = '\0';
@@ -250,8 +251,9 @@ void* handleClientInput(void* socketDesc)
 	else if(readSize == 0)
 	{
 		printf("Client disconnected\n");
+        break;
 	}
-
+    }
 	close(sock);
 	free(socketDesc);
 	return NULL;

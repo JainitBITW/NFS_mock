@@ -215,6 +215,9 @@ int main()
         {
             printf("Invalid request\n");
         }
+
+        fflush(stdin);
+        memset(request, "\0", sizeof(request));
     }
 
     return 0;
