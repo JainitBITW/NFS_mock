@@ -28,7 +28,7 @@ typedef struct StorageServer
     char ipAddress[16];         // IPv4 Address
     int nmPort;                 // Port for NM Connection
     int clientPort;             // Port for Client Connection
-    char accessiblePaths[1000]; // List of accessible paths
+    char accessiblePaths[1000][1000]; // List of accessible paths
     // Other metadata as needed
 } StorageServer;
 
@@ -56,7 +56,7 @@ void registerStorageServer(char *ipAddress, int nmPort, int clientPort, char *ac
         strcpy(server.ipAddress, ipAddress);
         server.nmPort = nmPort;
         server.clientPort = clientPort;
-        strcpy(server.accessiblePaths, accessiblePaths);
+        strcpy(server.accessiblePaths[0], accessiblePaths);
 
         storageServers[storageServerCount++] = server;
     }
@@ -71,13 +71,12 @@ pthread_mutex_t storageServerMutex = PTHREAD_MUTEX_INITIALIZER;
 void *handleStorageServer(void *socketDesc)
 {
     int sock = *(int *)socketDesc;
-    char buffer[1024]; // Adjust size as needed
+    char buffer[sizeof(StorageServer)]; // Adjust size as needed
     int readSize;
 
     // Read data from the socket
     if ((readSize = recv(sock, buffer, sizeof(buffer), 0)) > 0)
     {
-        buffer[readSize] = '\0';
 
         // Parse data to extract Storage Server details
         // For example, if the data is sent as a comma-separated string
@@ -85,22 +84,7 @@ void *handleStorageServer(void *socketDesc)
         char *rest = buffer;
         StorageServer newServer;
 
-        // Extract IP Address
-        token = strtok_r(rest, ",", &rest);
-        strncpy(newServer.ipAddress, token, sizeof(newServer.ipAddress));
-
-        // Extract NM Port
-        token = strtok_r(rest, ",", &rest);
-        newServer.nmPort = atoi(token);
-
-        // Extract Client Port
-        token = strtok_r(rest, ",", &rest);
-        newServer.clientPort = atoi(token);
-
-        // Extract Accessible Paths
-        token = strtok_r(rest, ",", &rest);
-        strncpy(newServer.accessiblePaths, token, sizeof(newServer.accessiblePaths));
-
+        memcpy(&newServer, buffer, sizeof(StorageServer));
         // Lock mutex before updating global storage server array
         pthread_mutex_lock(&storageServerMutex);
         if (storageServerCount < MAX_STORAGE_SERVERS)

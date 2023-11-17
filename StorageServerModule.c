@@ -28,7 +28,7 @@ typedef struct StorageServer {
     char ipAddress[16];  // IPv4 Address
     int nmPort;          // Port for NM Connection
     int clientPort;      // Port for Client Connection
-    char accessiblePaths[1000]; // List of accessible paths
+    char accessiblePaths[1000][1000]; // List of accessible paths
     // Other metadata as needed
 } StorageServer;
 
@@ -46,7 +46,7 @@ void registerStorageServer(char* ipAddress, int nmPort, int clientPort, char* ac
     strcpy(ss.ipAddress, ipAddress);
     ss.nmPort = nmPort;
     ss.clientPort = clientPort;
-    strcpy(ss.accessiblePaths, accessiblePaths);
+    strcpy(ss.accessiblePaths[0], accessiblePaths);
 }
 
 
@@ -87,10 +87,12 @@ void reportToNamingServer(StorageServer *server) {
         exit(EXIT_FAILURE);
     }
 
-    char buffer[1024];
-    serializeStorageServer(server, buffer);
-
-    if (send(sock, buffer, strlen(buffer), 0) < 0) {
+    char* buffer[sizeof( StorageServer)];
+    printf("Size of StorageServer : %d\n",sizeof( StorageServer));
+    printf("Size of buffer : %d\n",sizeof(buffer));
+    printf("Size of server : %d\n",sizeof(server));
+    memcpy(buffer , server , sizeof( StorageServer));
+    if (send(sock, buffer, sizeof(buffer), 0) < 0) {
         perror("Failed to send storage server data");
     }
 
