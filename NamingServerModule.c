@@ -27,9 +27,9 @@
 typedef struct StorageServer
 {
 	char ipAddress[16]; // IPv4 Address
-	int nmPort; // Port for NM Connection
-	int clientPort; // Port for Client Connection
-    int ssPort; // Port for SS Connection
+	int nmPort;			// Port for NM Connection
+	int clientPort;		// Port for Client Connection
+	int ssPort;			// Port for SS Connection
 	int numPaths;
 	char accessiblePaths[1000][1000]; // List of accessible paths
 	// Other metadata as needed
@@ -279,6 +279,7 @@ void *handleClientInput(void *socketDesc)
 			//  checking the command
 			if (strcmp(tokenArray[0], "READ") == 0 || strcmp(tokenArray[0], "WRITE") == 0 || strcmp(tokenArray[0], "GETSIZE") == 0)
 			{
+				printf("Command: %s\n", tokenArray[0]);
 				// finding out the storage server for the file
 				// path is tokenArray[1]
 				char path[1024];
@@ -289,6 +290,8 @@ void *handleClientInput(void *socketDesc)
 				{
 					path[len - 1] = '\0';
 				}
+
+				printf("Path: %s\n", path);
 
 				// compare the paths of all storage servers from storageServers array
 				// if the path is found in the accessiblePaths of a storage server
@@ -315,8 +318,21 @@ void *handleClientInput(void *socketDesc)
 				// 		break;
 				// 	}
 				// }
+				// PathToServerMap *s;
+				// get_path_ss(path, s, &foundFlag);
+
 				PathToServerMap *s;
-				get_path_ss(path, s, &foundFlag);
+				HASH_FIND_STR(serversByPath, path, s);
+				if (s != NULL)
+				{
+					strcpy(ip_Address_ss, s->server.ipAddress);
+					port_ss = s->server.clientPort;
+					foundFlag = 1;
+					printf("Found server for path %s\n", path);
+					printf("IP: %s\n", ip_Address_ss);
+					printf("Port: %d\n", port_ss);
+				}
+
 				if (foundFlag == 1)
 				{
 					// send the port and ip address back to the client
@@ -391,7 +407,7 @@ void *handleClientInput(void *socketDesc)
 					}
 
 					// Send some data
-					if (send(storageserversocket,buffer_copy, strlen(buffer_copy), 0) < 0)
+					if (send(storageserversocket, buffer_copy, strlen(buffer_copy), 0) < 0)
 					{
 						puts("Send failed");
 						return NULL;
@@ -402,8 +418,6 @@ void *handleClientInput(void *socketDesc)
 					// {
 					// 	puts("recv failed");
 					// }
-
-
 				}
 				else if (foundFlag == 0)
 				{
@@ -453,7 +467,7 @@ void *handleClientInput(void *socketDesc)
 					}
 
 					// Send some data
-					if (send(storageserversocket,buffer_copy, strlen(buffer_copy), 0) < 0)
+					if (send(storageserversocket, buffer_copy, strlen(buffer_copy), 0) < 0)
 					{
 						puts("Send failed");
 						return NULL;
@@ -474,68 +488,70 @@ void *handleClientInput(void *socketDesc)
 				PathToServerMap *destination;
 
 				int foundFlag = 0;
-                for(int i ; i < storageServerCount ; i++) {
-                    for(int j = 0; j < storageServers[i].numPaths; j++)
-                    {
-                        if(strcmp(storageServers[i].accessiblePaths[j], sourcePath) == 0)
-                        {
-                            // If path is in accessiblePaths of storageServer
-                            // send read request to that storage server
-                            source = malloc(sizeof(PathToServerMap));
-                            strcpy(source->path, storageServers[i].accessiblePaths[j]);
-                            source->server = storageServers[i];
-                            foundFlag = 1;
-                            break;
-                        }
-                    }
-                    if(foundFlag == 1)
-                    {
-                        break;
-                    }
-                }
-                if(foundFlag == 0) {
-                    printf("Source path not found\n");
-                    return NULL;
-                }
-                foundFlag = 0;
-                printf("Source path found\n");
-                printf("DEDS: %s\n", destinationPath );
-                
-                for(int i ; i < storageServerCount ; i++) {
-                    for(int j = 0; j < storageServers[i].numPaths; j++)
-                    {
-                        printf("DEDS: %s\n", storageServers[i].accessiblePaths[j] );
-                        if(strcmp(storageServers[i].accessiblePaths[j], destinationPath) == 0)
-                        {
-                            // If path is in accessiblePaths of storageServer
-                            // send read request to that storage server
-                            destination = malloc(sizeof(PathToServerMap));
-                            strcpy(destination->path, storageServers[i].accessiblePaths[j]);
-                            destination->server = storageServers[i];
-                            foundFlag = 1;
-                            break;
-                        }
-                    }
-                    if(foundFlag == 1)
-                    {
-                        break;
-                    }
-                }
-                if(foundFlag == 0) {
-                    printf("Destination path not found\n");
-                    return NULL;
-                }
-                
+				for (int i; i < storageServerCount; i++)
+				{
+					for (int j = 0; j < storageServers[i].numPaths; j++)
+					{
+						if (strcmp(storageServers[i].accessiblePaths[j], sourcePath) == 0)
+						{
+							// If path is in accessiblePaths of storageServer
+							// send read request to that storage server
+							source = malloc(sizeof(PathToServerMap));
+							strcpy(source->path, storageServers[i].accessiblePaths[j]);
+							source->server = storageServers[i];
+							foundFlag = 1;
+							break;
+						}
+					}
+					if (foundFlag == 1)
+					{
+						break;
+					}
+				}
+				if (foundFlag == 0)
+				{
+					printf("Source path not found\n");
+					return NULL;
+				}
+				foundFlag = 0;
+				printf("Source path found\n");
+				printf("DEDS: %s\n", destinationPath);
+
+				for (int i; i < storageServerCount; i++)
+				{
+					for (int j = 0; j < storageServers[i].numPaths; j++)
+					{
+						printf("DEDS: %s\n", storageServers[i].accessiblePaths[j]);
+						if (strcmp(storageServers[i].accessiblePaths[j], destinationPath) == 0)
+						{
+							// If path is in accessiblePaths of storageServer
+							// send read request to that storage server
+							destination = malloc(sizeof(PathToServerMap));
+							strcpy(destination->path, storageServers[i].accessiblePaths[j]);
+							destination->server = storageServers[i];
+							foundFlag = 1;
+							break;
+						}
+					}
+					if (foundFlag == 1)
+					{
+						break;
+					}
+				}
+				if (foundFlag == 0)
+				{
+					printf("Destination path not found\n");
+					return NULL;
+				}
+
 				// send this information to the source storage server
 				char reply[1024];
 				sprintf(reply,
 						"%s %d %s %s",
 						destination->server.ipAddress,
-                        destination->server.ssPort,
-                        sourcePath,
-                        destinationPath);
-				
-
+						destination->server.ssPort,
+						sourcePath,
+						destinationPath);
 			}
 		}
 		if (readSize < 0)
