@@ -33,6 +33,7 @@ typedef struct StorageServer
 	char ipAddress[16]; // IPv4 Address
 	int nmPort; // Port for NM Connection
 	int clientPort; // Port for Client Connection
+    int ssPort; // Port for SS Connection
 	int numPaths;
 	char accessiblePaths[1000][1000]; // List of accessible paths
 	// Other metadata as needed
@@ -270,10 +271,18 @@ void* executeNMRequest(void* arg)
 	char command[1024];
 	char path[1024];
 	char path2[1024];
+    char destination_ip[1024];
+    char destination_port[1024];
+    sprintf(reply,
+						"%s %d %s %s %d",
+						destination->server.ipAddress,
+                        destination->server.clientPort,
+                        sourcePath,
+                        destinationPath,
+                        source->server.clientPort);
 	if(strncmp(request, "COPY", sizeof("COPY")))
 	{
-		sscanf(request, "%s %s %s", command, path, path2);
-        printf("Command: %s %s %s\n", command, path, path2);
+		sscanf(request, "%s %d %s %s %d", destination_ip, destination_port, path, path2 , );
 	}
 	else
 	{
