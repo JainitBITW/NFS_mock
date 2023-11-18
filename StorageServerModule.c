@@ -11,15 +11,29 @@
 #include <unistd.h>
 #include <libgen.h>
 
-char NMIPADDRESS[16] = "10.2.135.30"; // Default value
-char SSIPADDRESS[16]; // For storing the IP address
-int CLIENT_PORT;
-int NM_PORT;
-int SS_PORT;
+
+#define NMIPADDRESS "127.0.0.1"
+#define SSIPADDRESS "127.0.0.2"
+
+// Incomming Connection
+#define CLIENT_PORT 4000
+#define NM_PORT 5000
+#define SS_PORT 6000
 
 // OutGoing Connection
-int NAMING_SERVER_PORT = 8000;
-char MOUNT[16] = "./src"; // For storing the MOUNT Path
+#define NAMING_SERVER_PORT 8000
+#define MOUNT "."
+
+
+// char NMIPADDRESS[16]; // Default value
+// char SSIPADDRESS[16]; // For storing the IP address
+// int CLIENT_PORT;
+// int NM_PORT;
+// int SS_PORT;
+
+// // OutGoing Connection
+// int NAMING_SERVER_PORT = 8000;
+// char MOUNT[16] = "."; // For storing the MOUNT Path
 
 typedef struct FileSystem
 {
@@ -744,33 +758,33 @@ void *handleStorageServerConnections(void *args)
 // The main function could set up the storage server.
 int main(int argc, char *argv[])
 {
-    if (argc != 5) {
-        fprintf(stderr, "Usage: %s <NMIPADDRESS> <SSIPADDRESS> <CLIENT_PORT> <NM_PORT> <SS_PORT>\n", argv[0]);
-        return 1;
-    }
+    // if (argc != 6) {
+    //     fprintf(stderr, "Usage: %s <NMIPADDRESS> <SSIPADDRESS> <CLIENT_PORT> <NM_PORT> <SS_PORT>\n", argv[0]);
+    //     return 1;
+    // }
 
 
-    // Ensure that the IP address is not too long to fit into NMIPADDRESS
-    if (strlen(argv[1]) < sizeof(NMIPADDRESS)) {
-        strcpy(NMIPADDRESS, argv[1]);
-        NMIPADDRESS[strlen(argv[1])] = '\0'; // Explicitly add null terminator
-    } else {
-        fprintf(stderr, "IP address is too long.\n");
-        return 1;
-    }
+    // // Ensure that the IP address is not too long to fit into NMIPADDRESS
+    // if (strlen(argv[1]) < sizeof(NMIPADDRESS)) {
+    //     strcpy(NMIPADDRESS, argv[1]);
+    //     NMIPADDRESS[strlen(argv[1])] = '\0'; // Explicitly add null terminator
+    // } else {
+    //     fprintf(stderr, "IP address is too long.\n");
+    //     return 1;
+    // }
 
-    // Ensure that the IP address is not too long to fit into SSIPADDRESS
-    if (strlen(argv[2]) < sizeof(SSIPADDRESS)) {
-        strcpy(SSIPADDRESS, argv[2]);
-        SSIPADDRESS[strlen(argv[2])] = '\0'; // Explicitly add null terminator
-    } else {
-        fprintf(stderr, "IP address is too long.\n");
-        return 1;
-    }
+    // // Ensure that the IP address is not too long to fit into SSIPADDRESS
+    // if (strlen(argv[2]) < sizeof(SSIPADDRESS)) {
+    //     strcpy(SSIPADDRESS, argv[2]);
+    //     SSIPADDRESS[strlen(argv[2])] = '\0'; // Explicitly add null terminator
+    // } else {
+    //     fprintf(stderr, "IP address is too long.\n");
+    //     return 1;
+    // }
 
-    CLIENT_PORT = atoi(argv[3]);
-    NM_PORT = atoi(argv[4]);
-    SS_PORT = atoi(argv[5]);
+    // CLIENT_PORT = atoi(argv[3]);
+    // NM_PORT = atoi(argv[4]);
+    // SS_PORT = atoi(argv[5]);
 
 
 	printf("Storage Server\n");
