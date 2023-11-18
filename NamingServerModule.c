@@ -31,7 +31,7 @@ typedef struct StorageServer
 	int clientPort;		// Port for Client Connection
 	int ssPort;			// Port for SS Connection
 	int numPaths;
-	char accessiblePaths[100][100]; // List of accessible paths
+	char accessiblePaths[500][100]; // List of accessible paths
 	// Other metadata as needed
 	UT_hash_handle hh; // Hash handle for uthash
 } StorageServer;
