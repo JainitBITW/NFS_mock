@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <libgen.h>
 
-char NMIPADDRESS[16] = "127.0.0.1"; // Default value
+char NMIPADDRESS[16] = "10.2.135.30"; // Default value
 char SSIPADDRESS[16]; // For storing the IP address
 int CLIENT_PORT;
 int NM_PORT;
@@ -19,7 +19,7 @@ int SS_PORT;
 
 // OutGoing Connection
 int NAMING_SERVER_PORT = 8000;
-char MOUNT[16] = "."; // For storing the MOUNT Path
+char MOUNT[16] = "./src"; // For storing the MOUNT Path
 
 typedef struct FileSystem
 {
