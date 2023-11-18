@@ -248,6 +248,35 @@ void get_path_ss(char* path, PathToServerMap* s, int* foundFlag)
 		printf("Port: %d\n", port_ss);
 	}
 }
+char* getDirectoryPath(const char* path) {
+    int length = strlen(path);
+
+    // Find the last occurrence of '/'
+    int lastSlashIndex = -1;
+    for (int i = length - 1; i >= 0; i--) {
+        if (path[i] == '/') {
+            lastSlashIndex = i;
+            break;
+        }
+    }
+
+    if (lastSlashIndex != -1) {
+        // Allocate memory for the new string
+        char* directoryPath = (char*)malloc((lastSlashIndex + 1) * sizeof(char));
+
+        // Copy the directory path into the new string
+        strncpy(directoryPath, path, lastSlashIndex);
+
+        // Add null terminator
+        directoryPath[lastSlashIndex] = '\0';
+
+        return directoryPath;
+    } else {
+        // No '/' found, the path is already a directory
+        return strdup(path);  // Duplicate the string to ensure the original is not modified
+    }
+}
+
 
 void* handleClientInput(void* socketDesc)
 {
@@ -581,11 +610,11 @@ void* handleClientInput(void* socketDesc)
 				// }
 				for(int i = 0; i < storageServerCount; i++)
 				{
-					printf("Storage server %d\n", i);
-					printf("Number of paths: %d\n", storageServers[i].numPaths);
+					// printf("Storage server %d\n", i);
+					// printf("Number of paths: %d\n", storageServers[i].numPaths);
 					for(int j = 0; j < storageServers[i].numPaths; j++)
 					{
-						printf("Path %d: %s\n", j, storageServers[i].accessiblePaths[j]);
+						// printf("Path %d: %s\n", j, storageServers[i].accessiblePaths[j]);
 						if(strcmp(storageServers[i].accessiblePaths[j], destinationPath) == 0)
 						{
 							// If path is in accessiblePaths of storageServer
@@ -607,6 +636,39 @@ void* handleClientInput(void* socketDesc)
 					}
 				}
 				printf("Found flag: %d\n", foundFlag);
+
+                if (foundFlag == 0)
+                {
+                   char* parentDir = getDirectoryPath((char*)destinationPath);
+                   printf("Parent dir######: %s\n", parentDir);
+                   // search for parentDir in the storage servers
+                     for(int i = 0; i < storageServerCount; i++)
+                     {
+                          for(int j = 0; j < storageServers[i].numPaths; j++)
+                          {
+                            printf ("Accessible path: %s\n", storageServers[i].accessiblePaths[j]);
+                            if(strcmp(storageServers[i].accessiblePaths[j], parentDir) == 0)
+                            {
+                                 // If path is in accessiblePaths of storageServer
+                                 // send read request to that storage server
+                                 printf("Found parent dir\n");
+                                 destination = malloc(sizeof(PathToServerMap));
+                                 strcpy(destination->path, storageServers[i].accessiblePaths[j]);
+                                 destination->server = storageServers[i];
+    
+                                 foundFlag = 1;
+                                 printf("Found server for path %s\n", parentDir);
+                                 break;
+                            }
+                          }
+                          if(foundFlag == 1)
+                          {
+                            printf("Found parent dir\n");
+                            break;
+                          }
+                     }
+                    
+                }
 				if(foundFlag == 0)
 				{
 					printf("Destination path not found\n");

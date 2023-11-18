@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #define NMIPADDRESS "127.0.0.1"
 #define SSIPADDRESS "127.0.0.2"
