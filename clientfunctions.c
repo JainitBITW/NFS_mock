@@ -22,8 +22,6 @@ void clientRead(int clientSocket)
     char response[100];
     recv(clientSocket, response, sizeof(response), 0);
 
-    printf("Response from Naming Server: %s\n", response);
-
     // tokenising the response into a token array
     char *tokenArrayresponse[10];
     char *tokenresponse = strtok(response, " ");
@@ -155,6 +153,19 @@ void clientGetSize(int clientSocket)
     close(storageServerSocket);
 }
 
+// creat function to send request to Naming Server to create a file
+void clientCreate(int clientSocket)
+{
+    // send request to Naming Server
+    send(clientSocket, request, strlen(request), 0);
+
+    // receive response from Naming Server
+    char response[100];
+    recv(clientSocket, response, sizeof(response), 0);
+
+    printf("Response from Naming Server: %s\n", response);
+}
+
 int main()
 {
     // client tries to connect to Naming Server TCP socket
@@ -210,6 +221,10 @@ int main()
         else if (strcmp(tokenArray[0], "GETSIZE") == 0)
         {
             clientGetSize(clientSocket);
+        }
+        else if (strcmp(tokenArray[0], "CREATE") == 0)
+        {
+            clientCreate(clientSocket);
         }
         else
         {

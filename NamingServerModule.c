@@ -240,6 +240,21 @@ void* handleClientInput(void* socketDesc)
 				}
 			}
 		}
+		else if (strcmp(tokenArray[0], "CREATE") == 0)
+		{
+			char path[1024];
+			strcpy(path, tokenArray[1]);
+			// strip the path of white spaces
+			int len = strlen(path);
+			if(isspace(path[len - 1]))
+			{
+				path[len - 1] = '\0';
+			}
+
+			// find out the path to be found
+			char path_copy[1024];
+
+		}
 	}
 	if(readSize < 0)
 	{
