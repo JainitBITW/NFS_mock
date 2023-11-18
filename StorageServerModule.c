@@ -11,8 +11,8 @@
 #include <unistd.h>
 #include <libgen.h>
 
-#define NMIPADDRESS "127.0.0.1"
-#define SSIPADDRESS "127.0.0.2"
+#define NMIPADDRESS "10.2.135.30"
+#define SSIPADDRESS "10.2.133.228"
 
 // Incomming Connection
 #define CLIENT_PORT 4000
@@ -680,6 +680,7 @@ void* handleStorageServerConnections(void* args)
         // now recieve the file from the source server
         char buffer[1024];
         int totalRead = 0;
+		memset(buffer, '\0', sizeof(buffer));
         
         if(recv(new_socket, buffer, sizeof(buffer), 0) < 0)
         {
