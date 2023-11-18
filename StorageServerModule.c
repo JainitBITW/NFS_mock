@@ -270,20 +270,21 @@ void* executeNMRequest(void* arg)
 	int NMSocket = threadArg->socket;
 
 	char command[1024];
-	char path[1024];
-	char path2[1024];
-    char destination_ip[1024];
-    char destination_port[1024];
-    sprintf(reply,
-						"%s %d %s %s %d",
-						destination->server.ipAddress,
-                        destination->server.clientPort,
-                        sourcePath,
-                        destinationPath,
-                        source->server.clientPort);
+	char path[1024];// Source path
+	char path2[1024];// Destination path
+    char destination_ip[1024]; // Destination IP
+    char destination_port[1024]; // Destination server port 
+
+    // sprintf(reply,
+	// 					"%s %d %s %s %d",
+	// 					destination->server.ipAddress,
+    //                     destination->server.clientPort,
+    //                     sourcePath,
+    //                     destinationPath,
+    //                     source->server.clientPort);
 	if(strncmp(request, "COPY", sizeof("COPY")))
 	{
-		sscanf(request, "%s %d %s %s %d", destination_ip, destination_port, path, path2 , );
+		sscanf(request, "%s %d %s %s ", destination_ip, destination_port, path, path2 );
 	}
 	else
 	{
@@ -350,7 +351,83 @@ void* executeNMRequest(void* arg)
 	}
 	else if(strcmp(command, "COPY") == 0)
 	{
-		
+        // open the file in read mode which path is "path"
+        FILE *fptr1 = fopen(path, "r");
+        // check if the file is opened or not
+        if (fptr1 == NULL)
+        {
+            printf("Cannot open file %s \n", path);
+            exit(0);
+        }
+        // copy the contents of the file in buffer to send it to the destination server
+        char buffer[1024];
+        int nread = fread(buffer, 1, sizeof(buffer), fptr1);
+        // close the file
+        fclose(fptr1);
+        // now we need to send the file to the destination server but first we need to connect to the destination server and send the file path 
+        // and then we need to send the file to the destination server
+        // create a socket
+        int sock;
+        struct sockaddr_in serverAddr;
+        // create a socket
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock < 0)
+        {
+            perror("Could not create socket");
+            return NULL;
+        }
+        // set the server address
+        serverAddr.sin_addr.s_addr = inet_addr(destination_ip);
+        serverAddr.sin_family = AF_INET;
+        serverAddr.sin_port = htons(atoi(destination_port));
+        // connect to the destination server
+        if (connect(sock, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)
+        {
+            perror("Connect failed. Error");
+            return NULL;
+        }
+        // send the file path to the destination server
+        if(send(sock, path2, strlen(path2), 0) < 0)
+        {
+            perror("Send failed");
+            close(sock);
+            exit(EXIT_FAILURE);
+        }
+        // recieve the response from the destination server 
+        char buffer2[1024];
+        int totalRead = 0;
+        if(recv(sock, buffer2, sizeof(buffer2), 0) < 0)
+        {
+            perror("recv failed");
+            close(sock);
+            exit(EXIT_FAILURE);
+        }
+        if (strcmp(buffer2, "OK") == 0)
+        {
+            // send the file to the destination server
+            printf("Sending file to the destination server\n");
+            printf("GOT OK\n");
+            if(send(sock, buffer, nread, 0) < 0)
+            {
+                perror("Send failed");
+                close(sock);
+                exit(EXIT_FAILURE);
+            }
+            // recieve the response from the destination server 
+            char buffer3[1024];
+            int totalRead = 0;
+            if(recv(sock, buffer3, sizeof(buffer3), 0) < 0)
+            {
+                perror("recv failed");
+                close(sock);
+                exit(EXIT_FAILURE);
+            }
+            printf("Server reply: %s\n", buffer3);
+        }
+        else
+        {
+            printf("Server reply: %s\n", buffer2);
+        }
 	}
 	// Add more conditions as needed
 	free(threadArg); // Free the allocated memory
@@ -365,9 +442,9 @@ void* executeSSRequest(void* arg)
 	// Similar structure to executeClientRequest
 	char command[1024];
 	char path[1024];
-	sscanf(request, "%s %s", command, path);
+	sscanf(request, "%s",path);
 
-	printf("Command: %s %s\n", command, path);
+	printf("Command:  %s\n", path);
 
 	if(strcmp(command, "CREATE") == 0)
 	{
@@ -561,15 +638,67 @@ void* handleStorageServerConnections(void* args)
 		// Execute the Command in a new thread so that SS is always listening for new connections
 		ThreadArg* arg = malloc(sizeof(ThreadArg));
 		arg->socket = new_socket;
-		read(new_socket, arg->request, sizeof(arg->request));
+		if(recv(new_socket, arg->request, sizeof(arg->request), 0) < 0)
+        {
+            perror("recv failed");
+            close(new_socket);
+            exit(EXIT_FAILURE);
+        }
+        if (strcmp(arg->request, "OK") == 0)
+        {
+            printf("GOT OK\n");
+            if(send(new_socket, "OK", 2, 0) < 0)
+            {
+                perror("Send failed");
+                close(new_socket);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else
+        {
+            printf("GOT NOT OK\n");
+        }
 
-		pthread_t tid;
-		if(pthread_create(&tid, NULL, (void* (*)(void*))executeSSRequest, arg) != 0)
-		{
-			perror("Failed to create thread for client request");
-		}
+        // now recieve the file from the source server
+        char buffer[1024];
+        int totalRead = 0;
+        if(recv(new_socket, buffer, sizeof(buffer), 0) < 0)
+        {
+            perror("recv failed");
+            close(new_socket);
+            exit(EXIT_FAILURE);
+        }
+        printf("Server reply: %s\n", buffer);
+        // now we need to write the file to the destination server
+        // open the file in write mode which path is "path"
+        FILE *fptr1 = fopen(arg->request, "w");
+        // check if the file is opened or not
+        if (fptr1 == NULL)
+        {
+            printf("Cannot open file %s \n", arg->request);
+            exit(0);
+        }
+        // copy the contents of the file in buffer to send it to the destination server
+        int nread = fwrite(buffer, 1, sizeof(buffer), fptr1);
+        // close the file
+        fclose(fptr1);
+        // send the response to the source server
+        if(send(new_socket, "OK", 2, 0) < 0)
+        {
+            perror("Send failed");
+            close(new_socket);
+            exit(EXIT_FAILURE);
+        }
+        close(new_socket);
 
-		pthread_detach(tid); // Detach the thread
+
+		// pthread_t tid;
+		// if(pthread_create(&tid, NULL, (void* (*)(void*))executeSSRequest, arg) != 0)
+		// {
+		// 	perror("Failed to create thread for client request");
+		// }
+
+		// pthread_detach(tid); // Detach the thread
 	}
 
 	return NULL;

@@ -13,7 +13,7 @@ int main() {
     printf("Start\n");
     struct sockaddr_in serverAddr;
     int sock;
-    const char* message = "READ ./src/Jainit/awadsf";
+    const char* message = "COPY ./src/hello ./src/jainit\n";
 
     printf("Starting client...\n");
 
