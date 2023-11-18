@@ -674,6 +674,7 @@ void* handleStorageServerConnections(void* args)
         // now recieve the file from the source server
         char buffer[1024];
         int totalRead = 0;
+        
         if(recv(new_socket, buffer, sizeof(buffer), 0) < 0)
         {
             perror("recv failed");
@@ -691,7 +692,8 @@ void* handleStorageServerConnections(void* args)
             exit(0);
         }
         // copy the contents of the file in buffer to send it to the destination server
-        int nread = fwrite(buffer, 1, sizeof(buffer), fptr1);
+        int buffersize = strlen(buffer);
+        int nread = fwrite(buffer, 1, buffersize, fptr1);
         // close the file
         fclose(fptr1);
         // send the response to the source server
