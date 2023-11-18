@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <ctype.h>
+#include "uthash.h"
 #define MAX_STORAGE_SERVERS 10
 #define MAX_CLIENTS 100
 #define NAMING_CLIENT_LISTEN_PORT 8001
@@ -31,7 +32,19 @@ typedef struct StorageServer
 	int numPaths;
 	char accessiblePaths[1000][1000]; // List of accessible paths
 	// Other metadata as needed
+	UT_hash_handle hh; // Hash handle for uthash
 } StorageServer;
+
+typedef struct PathToServerMap {
+    char path[1000]; // The key
+    StorageServer server; // The value
+    UT_hash_handle hh; // Makes this structure hashable
+} PathToServerMap;
+
+
+PathToServerMap *serversByPath = NULL;
+
+
 
 void* handleClientRequest();
 // FileSystem fileSystem[MAX_STORAGE_SERVERS];
@@ -49,7 +62,7 @@ void initializeNamingServer()
 	storageServerCount = 0;
 }
 
-//
+
 pthread_mutex_t storageServerMutex = PTHREAD_MUTEX_INITIALIZER;
 
 void* handleStorageServer(void* socketDesc)
@@ -87,6 +100,17 @@ void* handleStorageServer(void* socketDesc)
 			{
 				printf("Accessible Paths: %s\n", newServer.accessiblePaths[path_no]);
 			}
+
+			for (int path_no = 0; path_no < newServer.numPaths; path_no++) {
+				PathToServerMap *s = malloc(sizeof(PathToServerMap));
+				strcpy(s->path, newServer.accessiblePaths[path_no]);
+
+				// Copy the newServer data into the hash table entry
+				s->server = newServer; // Direct copy of the server
+
+				HASH_ADD_STR(serversByPath, path, s);
+			}
+
 
 			// Send ACK
 			const char* ackMessage = "Registration Successful";
@@ -208,25 +232,36 @@ void* handleClientInput(void* socketDesc)
 			int foundFlag = 0;
 			char ip_Address_ss[16];
 			int port_ss;
-			for(int i = 0; i < storageServerCount; i++)
-			{
-				for(int j = 0; j < storageServers[i].numPaths; j++)
-				{
-					if(strcmp(storageServers[i].accessiblePaths[j], path) == 0)
-					{
-						// If path is in accessiblePaths of storageServer
-						// send read request to that storage server
-						strcpy(ip_Address_ss, storageServers[i].ipAddress);
-						port_ss = storageServers[i].clientPort;
-						foundFlag = 1;
-						break;
-					}
-				}
-				if(foundFlag == 1)
-				{
-					break;
-				}
+			// for(int i = 0; i < storageServerCount; i++)
+			// {
+			// 	for(int j = 0; j < storageServers[i].numPaths; j++)
+			// 	{
+			// 		if(strcmp(storageServers[i].accessiblePaths[j], path) == 0)
+			// 		{
+			// 			// If path is in accessiblePaths of storageServer
+			// 			// send read request to that storage server
+			// 			strcpy(ip_Address_ss, storageServers[i].ipAddress);
+			// 			port_ss = storageServers[i].clientPort;
+			// 			foundFlag = 1;
+			// 			break;
+			// 		}
+			// 	}
+			// 	if(foundFlag == 1)
+			// 	{
+			// 		break;
+			// 	}
+			// }
+			PathToServerMap *s;
+			HASH_FIND_STR(serversByPath, path, s);
+			if (s != NULL) {
+				strcpy(ip_Address_ss, s->server.ipAddress);
+				port_ss = s->server.clientPort;
+				foundFlag = 1;
+				printf("Found server for path %s\n", path);
+				printf("IP: %s\n", ip_Address_ss);
+				printf("Port: %d\n", port_ss);
 			}
+
 			if(foundFlag == 1)
 			{
 				// send the port and ip address back to the client
