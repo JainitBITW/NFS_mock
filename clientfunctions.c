@@ -110,7 +110,7 @@ void clientWrite(int clientSocket)
 void clientGetSize(int clientSocket)
 {
     // send request to Naming Server
-    strcpy(request, "COPY ./src/hello ./src/jainit\n");
+    // strcpy(request, "COPY ./src/hello ./src/jainit\n");
     send(clientSocket, request, strlen(request), 0);
 
     // receive response from Naming Server

@@ -283,23 +283,27 @@ void* executeNMRequest(void* arg)
     //                     sourcePath,
     //                     destinationPath,
     //                     source->server.clientPort);
-	if(strncmp(request, "COPY", sizeof("COPY")))
-	{
-    printf("GOT here  %s\n", request);
-		sscanf(request, "%s %s %s %s %s", command , destination_ip, destination_port, path, path2 );
-        printf("Command: %s %s %s %s %s\n", command ,  destination_ip, destination_port, path, path2);
-        printf("GOT COPY\n");
-	}
-	else
-	{
+	printf("Request: %s\n", request);
+	// if(strncmp(request, "COPY", sizeof("COPY")))
+	// {
+    // printf("GOT here  %s\n", request);
+	// 	sscanf(request, "%s %s %s %s %s", command , destination_ip, destination_port, path, path2 );
+    //     printf("Command: %s %s %s %s %s\n", command ,  destination_ip, destination_port, path, path2);
+    //     printf("GOT COPY\n");
+	// }
+	// else
+	// {
 		sscanf(request, "%s %s", command, path);
 
-		printf("Command: %s %s\n", command, path);
-	}
+		printf("Command1: %s %s\n", command, path);
+		printf("Command2: %s\n", path);
+		printf("Command3: %s\n", command);
+	// }
 
 	if(strcmp(command, "CREATE") == 0)
 	{
 		int pathLength = strlen(path);
+		printf("Path length: %s\n", path);
 		if(path[pathLength - 1] == '/')
 		{ // Check if the path ends with '/'
 			if(mkdir(path, 0777) == -1)
@@ -446,33 +450,33 @@ void* executeNMRequest(void* arg)
 	return NULL;
 }
 
-void* executeSSRequest(void* arg)
-{
-	ThreadArg* threadArg = (ThreadArg*)arg;
-	char* request = threadArg->request;
-	// Similar structure to executeClientRequest
-	char command[1024];
-	char path[1024];
-	sscanf(request, "%s",path);
+// void* executeSSRequest(void* arg)
+// {
+// 	ThreadArg* threadArg = (ThreadArg*)arg;
+// 	char* request = threadArg->request;
+// 	// Similar structure to executeClientRequest
+// 	char command[1024];
+// 	char path[1024];
+// 	sscanf(request, "%s",path);
 
-	printf("Command:  %s\n", path);
+// 	printf("Command:  %s\n", path);
 
-	if(strcmp(command, "CREATE") == 0)
-	{
-		// Handle creating a file/directory
-	}
-	else if(strcmp(command, "DELETE") == 0)
-	{
-		// Handle deleting a file/directory
-	}
-	else if(strcmp(command, "COPY") == 0)
-	{
-		// Handle copying a file/directory
-	}
-	// Add more conditions as needed
-	free(threadArg); // Free the allocated memory
-	return NULL;
-}
+// 	if(strcmp(command, "CREATE") == 0)
+// 	{
+// 		// Handle creating a file/directory
+// 	}
+// 	else if(strcmp(command, "DELETE") == 0)
+// 	{
+// 		// Handle deleting a file/directory
+// 	}
+// 	else if(strcmp(command, "COPY") == 0)
+// 	{
+// 		// Handle copying a file/directory
+// 	}
+// 	// Add more conditions as needed
+// 	free(threadArg); // Free the allocated memory
+// 	return NULL;
+// }
 
 void* handleClientConnections(void* args)
 {

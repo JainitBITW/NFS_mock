@@ -408,12 +408,13 @@ void* handleClientInput(void* socketDesc)
 				int foundFlag = 0;
 				char ip_Address_ss[16];
 				int port_ss;
+				printf("Path: %s\n", path_copy);
 				PathToServerMap* s;
-				HASH_FIND_STR(serversByPath, path, s);
+				HASH_FIND_STR(serversByPath, path_copy, s);
 				if(s != NULL)
 				{
 					strcpy(ip_Address_ss, s->server.ipAddress);
-					port_ss = s->server.clientPort;
+					port_ss = s->server.nmPort;
 					foundFlag = 1;
 					printf("Found server for path %s\n", path);
 					printf("IP: %s\n", ip_Address_ss);
@@ -435,7 +436,7 @@ void* handleClientInput(void* socketDesc)
 
 					storageserveraddress.sin_addr.s_addr = inet_addr(s->server.ipAddress);
 					storageserveraddress.sin_family = AF_INET;
-					storageserveraddress.sin_port = htons(s->server.clientPort);
+					storageserveraddress.sin_port = htons(port_ss);
 
 					// Connect to remote server
 					if(connect(storageserversocket,
@@ -480,7 +481,16 @@ void* handleClientInput(void* socketDesc)
 				char ip_Address_ss[16];
 				int port_ss;
 				PathToServerMap* s;
-				get_path_ss(path, s, &foundFlag);
+				HASH_FIND_STR(serversByPath, path, s);
+				if(s != NULL)
+				{
+					strcpy(ip_Address_ss, s->server.ipAddress);
+					port_ss = s->server.nmPort;
+					foundFlag = 1;
+					printf("Found server for path %s\n", path);
+					printf("IP: %s\n", ip_Address_ss);
+					printf("Port: %d\n", port_ss);
+				}
 				if(foundFlag == 1)
 				{
 					// connect to the storage server port and ip address
@@ -497,7 +507,7 @@ void* handleClientInput(void* socketDesc)
 
 					storageserveraddress.sin_addr.s_addr = inet_addr(s->server.ipAddress);
 					storageserveraddress.sin_family = AF_INET;
-					storageserveraddress.sin_port = htons(s->server.clientPort);
+					storageserveraddress.sin_port = htons(port_ss);
 
 					// Connect to remote server
 					if(connect(storageserversocket,
