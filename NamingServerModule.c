@@ -27,9 +27,9 @@
 typedef struct StorageServer
 {
 	char ipAddress[16]; // IPv4 Address
-	int nmPort; // Port for NM Connection
-	int clientPort; // Port for Client Connection
-    int ssPort; // Port for SS Connection
+	int nmPort;			// Port for NM Connection
+	int clientPort;		// Port for Client Connection
+	int ssPort;			// Port for SS Connection
 	int numPaths;
 	char accessiblePaths[1000][1000]; // List of accessible paths
 	// Other metadata as needed
@@ -38,14 +38,14 @@ typedef struct StorageServer
 
 typedef struct PathToServerMap
 {
-	char path[1000]; // The key
+	char path[1000];	  // The key
 	StorageServer server; // The value
-	UT_hash_handle hh; // Makes this structure hashable
+	UT_hash_handle hh;	  // Makes this structure hashable
 } PathToServerMap;
 
-PathToServerMap* serversByPath = NULL;
+PathToServerMap *serversByPath = NULL;
 
-void* handleClientRequest();
+void *handleClientRequest();
 // FileSystem fileSystem[MAX_STORAGE_SERVERS];
 StorageServer storageServers[MAX_STORAGE_SERVERS];
 int storageServerCount = 0;
@@ -63,26 +63,26 @@ void initializeNamingServer()
 
 pthread_mutex_t storageServerMutex = PTHREAD_MUTEX_INITIALIZER;
 
-void* handleStorageServer(void* socketDesc)
+void *handleStorageServer(void *socketDesc)
 {
-	int sock = *(int*)socketDesc;
+	int sock = *(int *)socketDesc;
 	char buffer[sizeof(StorageServer)]; // Adjust size as needed
 	int readSize;
 
 	// Read data from the socket
-	if((readSize = recv(sock, buffer, sizeof(buffer), 0)) > 0)
+	if ((readSize = recv(sock, buffer, sizeof(buffer), 0)) > 0)
 	{
 
 		// Parse data to extract Storage Server details
 		// For example, if the data is sent as a comma-separated string
-		char* token;
-		char* rest = buffer;
+		char *token;
+		char *rest = buffer;
 		StorageServer newServer;
 
 		memcpy(&newServer, buffer, sizeof(StorageServer));
 		// Lock mutex before updating global storage server array
 		pthread_mutex_lock(&storageServerMutex);
-		if(storageServerCount < MAX_STORAGE_SERVERS)
+		if (storageServerCount < MAX_STORAGE_SERVERS)
 		{
 			storageServers[storageServerCount++] = newServer;
 			pthread_mutex_unlock(&storageServerMutex);
@@ -94,14 +94,14 @@ void* handleStorageServer(void* socketDesc)
 			printf("Client Port: %d\n", newServer.clientPort);
 			// printf("Accessible Paths: %s\n", newServer.accessiblePaths);
 			printf("NUM PATHS: %d\n", newServer.numPaths);
-			for(int path_no = 0; path_no < newServer.numPaths; path_no++)
+			for (int path_no = 0; path_no < newServer.numPaths; path_no++)
 			{
 				printf("Accessible Paths: %s\n", newServer.accessiblePaths[path_no]);
 			}
 
-			for(int path_no = 0; path_no < newServer.numPaths; path_no++)
+			for (int path_no = 0; path_no < newServer.numPaths; path_no++)
 			{
-				PathToServerMap* s = malloc(sizeof(PathToServerMap));
+				PathToServerMap *s = malloc(sizeof(PathToServerMap));
 				strcpy(s->path, newServer.accessiblePaths[path_no]);
 
 				// Copy the newServer data into the hash table entry
@@ -111,14 +111,14 @@ void* handleStorageServer(void* socketDesc)
 			}
 
 			// Send ACK
-			const char* ackMessage = "Registration Successful";
+			const char *ackMessage = "Registration Successful";
 			send(sock, ackMessage, strlen(ackMessage), 0);
 		}
 		else
 		{
 			pthread_mutex_unlock(&storageServerMutex);
 			// Send server limit reached message
-			const char* limitMessage = "Storage server limit reached";
+			const char *limitMessage = "Storage server limit reached";
 			send(sock, limitMessage, strlen(limitMessage), 0);
 		}
 	}
@@ -129,7 +129,7 @@ void* handleStorageServer(void* socketDesc)
 }
 // Thsi function is used to send
 void send_request(
-	char* source_ip, int source_port, char* destination_ip, int destination_port, char* buffer)
+	char *source_ip, int source_port, char *destination_ip, int destination_port, char *buffer)
 {
 	int sock;
 	struct sockaddr_in server;
@@ -137,7 +137,7 @@ void send_request(
 
 	// Create socket
 	sock = socket(AF_INET, SOCK_STREAM, 0);
-	if(sock == -1)
+	if (sock == -1)
 	{
 		printf("Could not create socket");
 	}
@@ -147,21 +147,21 @@ void send_request(
 	server.sin_port = htons(destination_port);
 
 	// Connect to remote server
-	if(connect(sock, (struct sockaddr*)&server, sizeof(server)) < 0)
+	if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0)
 	{
 		perror("connect failed. Error");
 		return;
 	}
 
 	// Send some data
-	if(send(sock, buffer, strlen(buffer), 0) < 0)
+	if (send(sock, buffer, strlen(buffer), 0) < 0)
 	{
 		puts("Send failed");
 		return;
 	}
 
 	// Receive a reply from the server
-	if(recv(sock, server_reply, 2000, 0) < 0)
+	if (recv(sock, server_reply, 2000, 0) < 0)
 	{
 		puts("recv failed");
 	}
@@ -172,14 +172,14 @@ void send_request(
 	close(sock);
 }
 
-void* startStorageServerListener()
+void *startStorageServerListener()
 {
 	int server_fd, new_socket, *new_sock;
 	struct sockaddr_in address;
 	int addrlen = sizeof(address);
 
 	// Creating socket file descriptor
-	if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
 	{
 		perror("socket failed");
 		exit(EXIT_FAILURE);
@@ -192,22 +192,22 @@ void* startStorageServerListener()
 
 	address.sin_port = htons(NAMING_SS_LISTEN_PORT);
 
-	if(bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0)
+	if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
 	{
 		perror("bind failed");
 		exit(EXIT_FAILURE);
 	}
 
 	// Start listening for incoming connections
-	if(listen(server_fd, MAX_STORAGE_SERVERS) < 0)
+	if (listen(server_fd, MAX_STORAGE_SERVERS) < 0)
 	{
 		perror("listen");
 		exit(EXIT_FAILURE);
 	}
 
-	while(1)
+	while (1)
 	{
-		if((new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0)
+		if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
 		{
 			perror("accept");
 			continue;
@@ -217,7 +217,7 @@ void* startStorageServerListener()
 		new_sock = malloc(sizeof(int));
 		*new_sock = new_socket;
 
-		if(pthread_create(&sn_thread, NULL, handleStorageServer, (void*)new_sock) < 0)
+		if (pthread_create(&sn_thread, NULL, handleStorageServer, (void *)new_sock) < 0)
 		{
 			perror("could not create thread");
 			free(new_sock);
@@ -234,12 +234,12 @@ void* startStorageServerListener()
 // path: the path for which the storage server is to be found
 // s : the path to server map uninitialized
 // foundFlag : flag to indicate if the path is found or not
-void get_path_ss(char* path, PathToServerMap* s , int* foundFlag) 
+void get_path_ss(char *path, PathToServerMap *s, int *foundFlag)
 {
-    char* ip_Address_ss;
-    int port_ss;
+	char *ip_Address_ss;
+	int port_ss;
 	HASH_FIND_STR(serversByPath, path, s);
-	if(s != NULL)
+	if (s != NULL)
 	{
 		strcpy(ip_Address_ss, s->server.ipAddress);
 		port_ss = s->server.clientPort;
@@ -250,14 +250,14 @@ void get_path_ss(char* path, PathToServerMap* s , int* foundFlag)
 	}
 }
 
-void* handleClientInput(void* socketDesc)
+void *handleClientInput(void *socketDesc)
 {
-	int sock = *(int*)socketDesc;
+	int sock = *(int *)socketDesc;
 	char buffer[1024];
 	int readSize;
-	while(1)
+	while (1)
 	{
-		if((readSize = recv(sock, buffer, sizeof(buffer), 0)) > 0)
+		if ((readSize = recv(sock, buffer, sizeof(buffer), 0)) > 0)
 		{
 			buffer[readSize] = '\0';
 			printf("Received command: %s\n", buffer);
@@ -265,18 +265,18 @@ void* handleClientInput(void* socketDesc)
 			// handling the command from client
 
 			//  tokenising the command
-			char* tokenArray[10];
-			char* token = strtok(buffer, " ");
+			char *tokenArray[10];
+			char *token = strtok(buffer, " ");
 			int i = 0;
-			while(token != NULL)
+			while (token != NULL)
 			{
 				tokenArray[i++] = token;
 				token = strtok(NULL, " ");
 			}
 
 			//  checking the command
-			if(strcmp(tokenArray[0], "READ") == 0 || strcmp(tokenArray[0], "WRITE") == 0 ||
-			   strcmp(tokenArray[0], "GETSIZE") == 0)
+			if (strcmp(tokenArray[0], "READ") == 0 || strcmp(tokenArray[0], "WRITE") == 0 ||
+				strcmp(tokenArray[0], "GETSIZE") == 0)
 			{
 				// finding out the storage server for the file
 				// path is tokenArray[1]
@@ -284,7 +284,7 @@ void* handleClientInput(void* socketDesc)
 				strcpy(path, tokenArray[1]);
 				// strip the path of white spaces
 				int len = strlen(path);
-				if(isspace(path[len - 1]))
+				if (isspace(path[len - 1]))
 				{
 					path[len - 1] = '\0';
 				}
@@ -314,28 +314,42 @@ void* handleClientInput(void* socketDesc)
 				// 		break;
 				// 	}
 				// }
-				PathToServerMap* s;
+				PathToServerMap *s;
 				get_path_ss(path, s, &foundFlag);
-				if(foundFlag == 1)
+				if (foundFlag == 1)
 				{
 					// send the port and ip address back to the client
 					char reply[1024];
-					sprintf(reply, "%s %d", s->server.ipAddress,  s->server.clientPort);
+					sprintf(reply, "%s %d", s->server.ipAddress, s->server.clientPort);
 
-					if(send(sock, reply, strlen(reply), 0) < 0)
+					if (send(sock, reply, strlen(reply), 0) < 0)
 					{
 						puts("Send failed");
 						return NULL;
 					}
 				}
 			}
-			else if(strcmp(tokenArray[0], "COPY") == 0)
+			else if (strcmp(tokenArray[0], "CREATE") == 0)
+			{
+				char path[1024];
+				strcpy(path, tokenArray[1]);
+				// strip the path of white spaces
+				int len = strlen(path);
+				if (isspace(path[len - 1]))
+				{
+					path[len - 1] = '\0';
+				}
+
+				// find out the path to be found
+				char path_copy[1024];
+			}
+			else if (strcmp(tokenArray[0], "COPY") == 0)
 			{
 				// finding out the storage server for the file
-				char* sourcePath = tokenArray[1];
-				char* destinationPath = tokenArray[2];
-				PathToServerMap* source ; 
-                PathToServerMap* destination ;
+				char *sourcePath = tokenArray[1];
+				char *destinationPath = tokenArray[2];
+				PathToServerMap *source;
+				PathToServerMap *destination;
 
 				int foundFlag = 0;
                 for(int i ; i < storageServerCount ; i++) {
@@ -402,14 +416,14 @@ void* handleClientInput(void* socketDesc)
 
 			}
 		}
-		if(readSize < 0)
+		if (readSize < 0)
 		{
 			perror("recv failed");
 			close(sock);
 			free(socketDesc);
 			return NULL;
 		}
-		else if(readSize == 0)
+		else if (readSize == 0)
 		{
 			printf("Client disconnected\n");
 			break;
@@ -420,13 +434,13 @@ void* handleClientInput(void* socketDesc)
 	return NULL;
 }
 
-void* handleClientRequest()
+void *handleClientRequest()
 {
 	int server_fd, clientSocket;
 	struct sockaddr_in address;
 	int addrlen = sizeof(address);
 
-	if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
 		perror("socket failed");
 		exit(EXIT_FAILURE);
@@ -436,13 +450,13 @@ void* handleClientRequest()
 	address.sin_addr.s_addr = inet_addr(NMIPADDRESS);
 	address.sin_port = htons(NAMING_CLIENT_LISTEN_PORT);
 
-	if(bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0)
+	if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
 	{
 		perror("bind failed");
 		exit(EXIT_FAILURE);
 	}
 
-	if(listen(server_fd, MAX_CLIENTS) < 0)
+	if (listen(server_fd, MAX_CLIENTS) < 0)
 	{
 		perror("listen");
 		exit(EXIT_FAILURE);
@@ -450,20 +464,20 @@ void* handleClientRequest()
 
 	printf("Naming Server started listening...\n");
 
-	while(1)
+	while (1)
 	{
-		if((clientSocket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0)
+		if ((clientSocket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
 		{
 			perror("accept");
 			continue;
 		}
 		printf("Client connected...\n");
 
-		int* new_sock = malloc(sizeof(int));
+		int *new_sock = malloc(sizeof(int));
 		*new_sock = clientSocket;
 
 		pthread_t client_thread;
-		if(pthread_create(&client_thread, NULL, handleClientInput, (void*)new_sock) < 0)
+		if (pthread_create(&client_thread, NULL, handleClientInput, (void *)new_sock) < 0)
 		{
 			perror("could not create thread");
 			free(new_sock);
@@ -492,7 +506,7 @@ void* handleClientRequest()
 //     }
 // }
 
-void sendCommandToServer(const char* serverIP, int port, const char* command)
+void sendCommandToServer(const char *serverIP, int port, const char *command)
 {
 	int sock;
 	struct sockaddr_in server;
@@ -500,7 +514,7 @@ void sendCommandToServer(const char* serverIP, int port, const char* command)
 
 	// Create socket
 	sock = socket(AF_INET, SOCK_STREAM, 0);
-	if(sock == -1)
+	if (sock == -1)
 	{
 		printf("Could not create socket");
 	}
@@ -510,21 +524,21 @@ void sendCommandToServer(const char* serverIP, int port, const char* command)
 	server.sin_port = htons(port);
 
 	// Connect to remote server
-	if(connect(sock, (struct sockaddr*)&server, sizeof(server)) < 0)
+	if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0)
 	{
 		perror("connect failed. Error");
 		return;
 	}
 
 	// Send some data
-	if(send(sock, command, strlen(command), 0) < 0)
+	if (send(sock, command, strlen(command), 0) < 0)
 	{
 		puts("Send failed");
 		return;
 	}
 
 	// Receive a reply from the server
-	if(recv(sock, server_reply, 2000, 0) < 0)
+	if (recv(sock, server_reply, 2000, 0) < 0)
 	{
 		puts("recv failed");
 	}
@@ -535,26 +549,26 @@ void sendCommandToServer(const char* serverIP, int port, const char* command)
 	close(sock);
 }
 
-void createFileOrDirectory(const char* serverIP, int port, const char* path, int isDirectory)
+void createFileOrDirectory(const char *serverIP, int port, const char *path, int isDirectory)
 {
 	char command[1024];
 	sprintf(command, "CREATE %s %d", path, isDirectory);
 	sendCommandToServer(serverIP, port, command);
 }
 
-void deleteFileOrDirectory(const char* serverIP, int port, const char* path)
+void deleteFileOrDirectory(const char *serverIP, int port, const char *path)
 {
 	char command[1024];
 	sprintf(command, "DELETE %s", path);
 	sendCommandToServer(serverIP, port, command);
 }
 
-void copyFileOrDirectory(const char* sourceIP,
+void copyFileOrDirectory(const char *sourceIP,
 						 int sourcePort,
-						 const char* destinationIP,
+						 const char *destinationIP,
 						 int destinationPort,
-						 const char* sourcePath,
-						 const char* destinationPath)
+						 const char *sourcePath,
+						 const char *destinationPath)
 {
 	char command[1024];
 	sprintf(
@@ -570,14 +584,14 @@ int main()
 	pthread_t storageThread, clientThread;
 
 	// Create a thread to detect Storage Server
-	if(pthread_create(&storageThread, NULL, startStorageServerListener, NULL))
+	if (pthread_create(&storageThread, NULL, startStorageServerListener, NULL))
 	{
 		fprintf(stderr, "Error creating storage server listener thread\n");
 		return 1;
 	}
 
 	// Create a thread to handle client requests
-	if(pthread_create(&clientThread, NULL, handleClientRequest, NULL))
+	if (pthread_create(&clientThread, NULL, handleClientRequest, NULL))
 	{
 		fprintf(stderr, "Error creating client request handler thread\n");
 		return 1;
