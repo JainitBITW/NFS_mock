@@ -275,14 +275,13 @@ void* executeNMRequest(void* arg)
 	char path2[1024];// Destination path
     char destination_ip[1024]; // Destination IP
     char destination_port[100]; // Destination server port 
-
-    // sprintf(reply,
-	// 					"%s %d %s %s %d",
-	// 					destination->server.ipAddress,
-    //                     destination->server.clientPort,
-    //                     sourcePath,
-    //                     destinationPath,
-    //                     source->server.clientPort);
+	// memset all 
+	memset(command, '\0', sizeof(command));
+    memset(path, '\0', sizeof(path));
+    memset(path2, '\0', sizeof(path2));
+    memset(destination_ip, '\0', sizeof(destination_ip));
+    memset(destination_port, '\0', sizeof(destination_port));
+    
 	printf("Request: %s\n", request);
 	sscanf(request, "%s %s", command, path);
 	if(strcmp(command, "COPY") == 0)
@@ -591,7 +590,7 @@ void* handleNamingServerConnections(void* args)
 		// Execute the Command in a new thread so that SS is always listening for new connections
 		ThreadArg* arg = malloc(sizeof(ThreadArg));
 		arg->socket = new_socket;
-        
+        memset(arg->request, '\0', sizeof(arg->request));
 		if(recv(new_socket, arg->request, sizeof(arg->request), 0) < 0)
         {
             perror("recv failed");
@@ -660,6 +659,7 @@ void* handleStorageServerConnections(void* args)
 		// Execute the Command in a new thread so that SS is always listening for new connections
 		ThreadArg* arg = malloc(sizeof(ThreadArg));
 		arg->socket = new_socket;
+		memset(arg-> request, '\0', sizeof(arg->request));
 		if(recv(new_socket, arg->request, sizeof(arg->request), 0) < 0)
         {
             perror("recv failed");

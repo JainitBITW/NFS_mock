@@ -551,10 +551,10 @@ void *handleClientInput(void *socketDesc)
 					printf("Token %d: %s\n", i, tokenArray[i]);
 				}
 				// finding out the storage server for the file
-				char sourcePath[1024];
+				char sourcePath[1024] = {'\0'} ;
 				strcpy(sourcePath, tokenArray[1]);
 				printf("Source path: %s\n", sourcePath);
-				char destinationPath[1024];
+				char destinationPath[1024]= {'\0'};
 				strcpy(destinationPath, tokenArray[2]);
 				PathToServerMap *source;
 				PathToServerMap *destination;
@@ -699,6 +699,7 @@ void *handleClientInput(void *socketDesc)
 
 				// send this information to the source storage server
 				char reply[2000];
+				memset(reply,'\0', sizeof(reply));
 				sprintf(reply,
 						"COPY %s %d %s %s",
 						destination->server.ipAddress,
@@ -708,7 +709,7 @@ void *handleClientInput(void *socketDesc)
 				printf("Reply: %s\n", reply);
 				int sock;
 				struct sockaddr_in server;
-				char server_reply[2000];
+				char server_reply[2000]={'\0'};
 
 				// Create socket
 				sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -729,6 +730,7 @@ void *handleClientInput(void *socketDesc)
 				}
 
 				// Send some data
+				printf("The length of reply is %d\n", strlen(reply));
 				if (send(sock, reply, strlen(reply), 0) < 0)
 				{
 					puts("Send failed");

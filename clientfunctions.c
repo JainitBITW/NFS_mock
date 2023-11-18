@@ -183,7 +183,10 @@ void clientDelete(int clientSocket)
 // copy function to send request to Naming server to copy
 void clientCopy(int clientSocket)
 {
+      // send request to Naming Server
+    // strcpy(request, "COPY ./src/hello ./src/jainit\n");
     send(clientSocket, request, strlen(request), 0);
+
 }
 
 int main()
