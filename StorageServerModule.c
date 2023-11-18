@@ -96,6 +96,7 @@ void registerStorageServer(char* ipAddress, int nmPort, int clientPort, char* ac
 	strcpy(ss.ipAddress, ipAddress);
 	ss.nmPort = nmPort;
 	ss.clientPort = clientPort;
+	ss.ssPort = SS_PORT;
 	strcpy(ss.accessiblePaths[0], MOUNT);
 	// update initial accessible paths
 	ss.numPaths = 1;
@@ -577,7 +578,7 @@ void* handleStorageServerConnections(void* args)
 // The main function could set up the storage server.
 int main(int argc, char* argv[])
 {
-	// printf("Storage Server\n");
+	printf("Storage Server\n");
 	initializeStorageServer();
 	printf("%d \n This ", ss.numPaths);
 	// Report to the naming server

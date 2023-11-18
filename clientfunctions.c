@@ -159,11 +159,24 @@ void clientCreate(int clientSocket)
     // send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
 
-    // receive response from Naming Server
-    char response[100];
-    recv(clientSocket, response, sizeof(response), 0);
+    // // receive response from Naming Server
+    // char response[100];
+    // recv(clientSocket, response, sizeof(response), 0);
 
-    printf("Response from Naming Server: %s\n", response);
+    // printf("Response from Naming Server: %s\n", response);
+}
+
+// delete function to send request to Naming Server to delete a file
+void clientDelete(int clientSocket)
+{
+    // send request to Naming Server
+    send(clientSocket, request, strlen(request), 0);
+
+    // // receive response from Naming Server
+    // char response[100];
+    // recv(clientSocket, response, sizeof(response), 0);
+
+    // printf("Response from Naming Server: %s\n", response);
 }
 
 int main()
@@ -225,6 +238,10 @@ int main()
         else if (strcmp(tokenArray[0], "CREATE") == 0)
         {
             clientCreate(clientSocket);
+        }
+        else if (strcmp(tokenArray[0], "DELETE") == 0)
+        {
+            clientDelete(clientSocket);
         }
         else
         {

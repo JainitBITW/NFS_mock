@@ -27,9 +27,9 @@
 typedef struct StorageServer
 {
 	char ipAddress[16]; // IPv4 Address
-	int nmPort;			// Port for NM Connection
-	int clientPort;		// Port for Client Connection
-	int ssPort;			// Port for SS Connection
+	int nmPort; // Port for NM Connection
+	int clientPort; // Port for Client Connection
+    int ssPort; // Port for SS Connection
 	int numPaths;
 	char accessiblePaths[1000][1000]; // List of accessible paths
 	// Other metadata as needed
@@ -260,6 +260,8 @@ void *handleClientInput(void *socketDesc)
 		if ((readSize = recv(sock, buffer, sizeof(buffer), 0)) > 0)
 		{
 			buffer[readSize] = '\0';
+			char buffer_copy[1024];
+			strcpy(buffer_copy, buffer);
 			printf("Received command: %s\n", buffer);
 
 			// handling the command from client
@@ -275,8 +277,7 @@ void *handleClientInput(void *socketDesc)
 			}
 
 			//  checking the command
-			if (strcmp(tokenArray[0], "READ") == 0 || strcmp(tokenArray[0], "WRITE") == 0 ||
-				strcmp(tokenArray[0], "GETSIZE") == 0)
+			if (strcmp(tokenArray[0], "READ") == 0 || strcmp(tokenArray[0], "WRITE") == 0 || strcmp(tokenArray[0], "GETSIZE") == 0)
 			{
 				// finding out the storage server for the file
 				// path is tokenArray[1]
@@ -342,6 +343,127 @@ void *handleClientInput(void *socketDesc)
 
 				// find out the path to be found
 				char path_copy[1024];
+				strcpy(path_copy, path);
+				int backslashCount = 0;
+				for (int i = 0; i < strlen(path_copy); i++)
+				{
+					if (path_copy[i] == '/')
+					{
+						backslashCount++;
+					}
+				}
+
+				if (backslashCount > 1)
+				{
+					char *lastSlash = strrchr(path_copy, '/');
+					*lastSlash = '\0';
+				}
+
+				// find the storage server for the path
+				int foundFlag = 0;
+				char ip_Address_ss[16];
+				int port_ss;
+				PathToServerMap *s;
+				get_path_ss(path_copy, s, &foundFlag);
+				if (foundFlag == 1)
+				{
+					// connect to the storage server port and ip address
+					int storageserversocket;
+					struct sockaddr_in storageserveraddress;
+					char storageserverreply[2000];
+
+					// Create socket
+					storageserversocket = socket(AF_INET, SOCK_STREAM, 0);
+					if (storageserversocket == -1)
+					{
+						printf("Could not create socket");
+					}
+
+					storageserveraddress.sin_addr.s_addr = inet_addr(s->server.ipAddress);
+					storageserveraddress.sin_family = AF_INET;
+					storageserveraddress.sin_port = htons(s->server.clientPort);
+
+					// Connect to remote server
+					if (connect(storageserversocket, (struct sockaddr *)&storageserveraddress, sizeof(storageserveraddress)) < 0)
+					{
+						perror("connect failed. Error");
+						return NULL;
+					}
+
+					// Send some data
+					if (send(storageserversocket,buffer_copy, strlen(buffer_copy), 0) < 0)
+					{
+						puts("Send failed");
+						return NULL;
+					}
+
+					// Receive a reply from the server
+					// if (recv(storageserversocket, storageserverreply, 2000, 0) < 0)
+					// {
+					// 	puts("recv failed");
+					// }
+
+
+				}
+				else if (foundFlag == 0)
+				{
+				}
+			}
+			else if (strcmp(tokenArray[0], "DELETE") == 0)
+			{
+				// finding out the storage server for the file
+				char path[1024];
+				strcpy(path, tokenArray[1]);
+				// strip the path of white spaces
+				int len = strlen(path);
+				if (isspace(path[len - 1]))
+				{
+					path[len - 1] = '\0';
+				}
+
+				// find the storage server for the path
+				int foundFlag = 0;
+				char ip_Address_ss[16];
+				int port_ss;
+				PathToServerMap *s;
+				get_path_ss(path, s, &foundFlag);
+				if (foundFlag == 1)
+				{
+					// connect to the storage server port and ip address
+					int storageserversocket;
+					struct sockaddr_in storageserveraddress;
+					char storageserverreply[2000];
+
+					// Create socket
+					storageserversocket = socket(AF_INET, SOCK_STREAM, 0);
+					if (storageserversocket == -1)
+					{
+						printf("Could not create socket");
+					}
+
+					storageserveraddress.sin_addr.s_addr = inet_addr(s->server.ipAddress);
+					storageserveraddress.sin_family = AF_INET;
+					storageserveraddress.sin_port = htons(s->server.clientPort);
+
+					// Connect to remote server
+					if (connect(storageserversocket, (struct sockaddr *)&storageserveraddress, sizeof(storageserveraddress)) < 0)
+					{
+						perror("connect failed. Error");
+						return NULL;
+					}
+
+					// Send some data
+					if (send(storageserversocket,buffer_copy, strlen(buffer_copy), 0) < 0)
+					{
+						puts("Send failed");
+						return NULL;
+					}
+
+					// Receive a reply from the server
+				}
+				else if (foundFlag == 0)
+				{
+				}
 			}
 			else if (strcmp(tokenArray[0], "COPY") == 0)
 			{
