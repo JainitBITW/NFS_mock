@@ -180,6 +180,12 @@ void clientDelete(int clientSocket)
     // printf("Response from Naming Server: %s\n", response);
 }
 
+// copy function to send request to Naming server to copy
+void clientCopy(int clientSocket)
+{
+    send(clientSocket, request, strlen(request), 0);
+}
+
 int main()
 {
     // client tries to connect to Naming Server TCP socket
@@ -244,6 +250,10 @@ int main()
         {
             clientDelete(clientSocket);
         }
+        else if (strcmp(tokenArray[0], "COPY") == 0)
+        {
+            clientCopy(clientSocket);
+        }
         else
         {
             printf("Invalid request\n");
@@ -251,8 +261,6 @@ int main()
 
         fflush(stdin);
         memset(request, '\0', sizeof(request));
-
-        
     }
 
     return 0;

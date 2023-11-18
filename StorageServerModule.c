@@ -284,21 +284,22 @@ void* executeNMRequest(void* arg)
     //                     destinationPath,
     //                     source->server.clientPort);
 	printf("Request: %s\n", request);
-	// if(strncmp(request, "COPY", sizeof("COPY")))
-	// {
-    // printf("GOT here  %s\n", request);
-	// 	sscanf(request, "%s %s %s %s %s", command , destination_ip, destination_port, path, path2 );
-    //     printf("Command: %s %s %s %s %s\n", command ,  destination_ip, destination_port, path, path2);
-    //     printf("GOT COPY\n");
-	// }
-	// else
-	// {
+	sscanf(request, "%s %s", command, path);
+	if(strcmp(command, "COPY") == 0)
+	{
+    printf("GOT here  %s\n", request);
+		sscanf(request, "%s %s %s %s %s", command , destination_ip, destination_port, path, path2 );
+        printf("Command: %s %s %s %s %s\n", command ,  destination_ip, destination_port, path, path2);
+        printf("GOT COPY\n");
+	}
+	else
+	{
 		sscanf(request, "%s %s", command, path);
 
 		printf("Command1: %s %s\n", command, path);
 		printf("Command2: %s\n", path);
 		printf("Command3: %s\n", command);
-	// }
+	}
 
 	if(strcmp(command, "CREATE") == 0)
 	{
