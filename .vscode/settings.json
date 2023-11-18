@@ -3,6 +3,7 @@
         "dirent.h": "c",
         "stat.h": "c",
         "socket.h": "c",
-        "libgen.h": "c"
+        "libgen.h": "c",
+        "stdlib.h": "c"
     }
 }

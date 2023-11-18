@@ -745,22 +745,32 @@ void *handleStorageServerConnections(void *args)
 int main(int argc, char *argv[])
 {
     if (argc != 5) {
-        fprintf(stderr, "Usage: %s <SSIPADDRESS> <CLIENT_PORT> <NM_PORT> <SS_PORT>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <NMIPADDRESS> <SSIPADDRESS> <CLIENT_PORT> <NM_PORT> <SS_PORT>\n", argv[0]);
         return 1;
     }
 
-    // Ensure that the IP address is not too long to fit into SSIPADDRESS
-    if (strlen(argv[1]) < sizeof(SSIPADDRESS)) {
-        strcpy(SSIPADDRESS, argv[1]);
-        SSIPADDRESS[strlen(argv[1])] = '\0'; // Explicitly add null terminator
+
+    // Ensure that the IP address is not too long to fit into NMIPADDRESS
+    if (strlen(argv[1]) < sizeof(NMIPADDRESS)) {
+        strcpy(NMIPADDRESS, argv[1]);
+        NMIPADDRESS[strlen(argv[1])] = '\0'; // Explicitly add null terminator
     } else {
         fprintf(stderr, "IP address is too long.\n");
         return 1;
     }
 
-    CLIENT_PORT = atoi(argv[2]);
-    NM_PORT = atoi(argv[3]);
-    SS_PORT = atoi(argv[4]);
+    // Ensure that the IP address is not too long to fit into SSIPADDRESS
+    if (strlen(argv[2]) < sizeof(SSIPADDRESS)) {
+        strcpy(SSIPADDRESS, argv[2]);
+        SSIPADDRESS[strlen(argv[2])] = '\0'; // Explicitly add null terminator
+    } else {
+        fprintf(stderr, "IP address is too long.\n");
+        return 1;
+    }
+
+    CLIENT_PORT = atoi(argv[3]);
+    NM_PORT = atoi(argv[4]);
+    SS_PORT = atoi(argv[5]);
 
 
 	printf("Storage Server\n");
