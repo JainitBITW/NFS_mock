@@ -240,6 +240,115 @@ void* handleClientInput(void* socketDesc)
 				}
 			}
 		}
+        else if(strcmp(tokenArray[0], "COPY") == 0)
+        {
+            // finding out the storage server for the file
+            char* sourcePath = tokenArray[1];
+            char* destinationPath = tokenArray[2] ;
+            char sourceIP[16];
+            int sourcePort;
+            char destinationIP[16];
+            int destinationPort;
+            int foundFlag=0 ; 
+            for (int i = 0; i < storageServerCount; i++)
+            {
+                for (int j = 0; j < storageServers[i].numPaths; j++)
+                {
+                    if (strcmp(storageServers[i].accessiblePaths[j], sourcePath) == 0)
+                    {
+                        // If path is in accessiblePaths of storageServer
+                        // send read request to that storage server
+                        strcpy(sourceIP, storageServers[i].ipAddress);
+                        sourcePort = storageServers[i].clientPort;
+                        foundFlag = 1;
+                        break;
+                    }
+                }
+                if (foundFlag == 1)
+                {
+                    break;
+                }
+            }
+            if(foundFlag==0)
+            {
+                printf("Source path not found\n");
+                return NULL;
+            }
+            foundFlag=0;
+            for (int i = 0; i < storageServerCount; i++)
+            {
+                for (int j = 0; j < storageServers[i].numPaths; j++)
+                {
+                    if (strcmp(storageServers[i].accessiblePaths[j], destinationPath) == 0)
+                    {
+                        // If path is in accessiblePaths of storageServer
+                        // send read request to that storage server
+                        strcpy(destinationIP, storageServers[i].ipAddress);
+                        destinationPort = storageServers[i].clientPort;
+                        foundFlag = 1;
+                        break;
+                    }
+                }
+                if (foundFlag == 1)
+                {
+                    break;
+                }
+            }
+            if (foundFlag == 0)
+            {
+                printf("Destination path not found\n");
+                return NULL;
+            }
+            // send this information to the source storage server
+            char reply[1024];
+            sprintf(reply, "%s %d %s %s %d", destinationIP, destinationPort, destinationPath , sourcePath , 0);
+
+            // new socket for sending the reply to the source storage server
+            int sock1;
+            struct sockaddr_in server1;
+            char server_reply[2000];
+
+            // Create socket
+            sock1 = socket(AF_INET, SOCK_STREAM, 0);
+            if (sock1 == -1)
+            {
+                printf("Could not create socket");
+            }
+
+            server1.sin_addr.s_addr = inet_addr(sourceIP);
+            server1.sin_family = AF_INET;
+            server1.sin_port = htons(sourcePort);
+
+            // Connect to remote server
+            if (connect(sock1, (struct sockaddr*)&server1, sizeof(server1)) < 0)
+            {
+                perror("connect failed. Error");
+                return NULL;
+            }
+
+            // Send some data
+            if (send(sock1, reply, strlen(reply), 0) < 0)
+            {
+                puts("Send failed");
+                return NULL;
+            }
+
+            // Receive a reply from the server
+            if (recv(sock1, server_reply, 2000, 0) < 0)
+            {
+                puts("recv failed");
+            }
+            if(strcmp(server_reply,"ACK")==0)
+            {
+                printf("Copy request sent to source storage server\n");
+            }
+            else
+            {
+                printf("Copy request failed\n");
+            }
+            
+
+        }
 	}
 	if(readSize < 0)
 	{
