@@ -1,3 +1,15 @@
+# final-project-44
+
+### Team Information
+
+#### Team Number : 44
+#### Team Members:
+- Amey Choudhary , 2021113017
+- Jainit Bafna ,  2021114003
+- Yash Bhaskar ,  2021114012
+
+#### Disclaimer: We have used AI-powered tools, like ChatGPT and GitHub Copilot.
+
 Given the complexity and length of a complete implementation for the described Network File System (NFS) with Naming and Storage servers, it's impractical to write the entire code within this format. However, I can guide you through a high-level approach, describe the modules you'll need, outline the functions that each module should contain, and give you code snippets or pseudocode for key parts. You can then use this as a blueprint to implement the entire system.
 
 
