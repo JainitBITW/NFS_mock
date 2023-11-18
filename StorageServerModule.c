@@ -35,7 +35,7 @@ typedef struct StorageServer
 	int clientPort; // Port for Client Connection
     int ssPort; // Port for SS Connection
 	int numPaths;
-	char accessiblePaths[1000][1000]; // List of accessible paths
+	char accessiblePaths[100][100]; // List of accessible paths
 	// Other metadata as needed
 } StorageServer;
 
@@ -273,7 +273,7 @@ void* executeNMRequest(void* arg)
 	char path[1024];// Source path
 	char path2[1024];// Destination path
     char destination_ip[1024]; // Destination IP
-    char destination_port[1024]; // Destination server port 
+    char destination_port[100]; // Destination server port 
 
     // sprintf(reply,
 	// 					"%s %d %s %s %d",
@@ -284,7 +284,10 @@ void* executeNMRequest(void* arg)
     //                     source->server.clientPort);
 	if(strncmp(request, "COPY", sizeof("COPY")))
 	{
-		sscanf(request, "%s %d %s %s ", destination_ip, destination_port, path, path2 );
+    printf("GOT here  %s\n", request);
+		sscanf(request, "%s %s %s %s %s", command , destination_ip, destination_port, path, path2 );
+        printf("Command: %s %s %s %s %s\n", command ,  destination_ip, destination_port, path, path2);
+        printf("GOT COPY\n");
 	}
 	else
 	{
@@ -349,19 +352,25 @@ void* executeNMRequest(void* arg)
 			}
 		}
 	}
-	else if(strcmp(command, "COPY") == 0)
+	else if(strncmp(command, "COPY" , strlen("COPY")) == 0)
 	{
+        int d_port = atoi(destination_port);
+        
         // open the file in read mode which path is "path"
         FILE *fptr1 = fopen(path, "r");
+        printf("GOT COPY\n");
+        // printf("Command: %s %s %s %s\n", destination_ip, destination_port, path, path);
         // check if the file is opened or not
         if (fptr1 == NULL)
         {
             printf("Cannot open file %s \n", path);
             exit(0);
         }
+
         // copy the contents of the file in buffer to send it to the destination server
         char buffer[1024];
         int nread = fread(buffer, 1, sizeof(buffer), fptr1);
+        printf("%s is the buffer\n", buffer  );
         // close the file
         fclose(fptr1);
         // now we need to send the file to the destination server but first we need to connect to the destination server and send the file path 
@@ -379,7 +388,7 @@ void* executeNMRequest(void* arg)
         // set the server address
         serverAddr.sin_addr.s_addr = inet_addr(destination_ip);
         serverAddr.sin_family = AF_INET;
-        serverAddr.sin_port = htons(atoi(destination_port));
+        serverAddr.sin_port = htons(d_port);
         // connect to the destination server
         if (connect(sock, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)
         {
@@ -402,7 +411,8 @@ void* executeNMRequest(void* arg)
             close(sock);
             exit(EXIT_FAILURE);
         }
-        if (strcmp(buffer2, "OK") == 0)
+        printf("Server reply: %s\n", buffer2);
+        if (strncmp(buffer2, "OK" , strlen("OK")) == 0)
         {
             // send the file to the destination server
             printf("Sending file to the destination server\n");
@@ -575,8 +585,14 @@ void* handleNamingServerConnections(void* args)
 		// Execute the Command in a new thread so that SS is always listening for new connections
 		ThreadArg* arg = malloc(sizeof(ThreadArg));
 		arg->socket = new_socket;
-		read(new_socket, arg->request, sizeof(arg->request));
-
+        
+		if(recv(new_socket, arg->request, sizeof(arg->request), 0) < 0)
+        {
+            perror("recv failed");
+            close(new_socket);
+            exit(EXIT_FAILURE);
+        }
+        printf("GOT this here %s\n", arg->request);
 		pthread_t tid;
 		if(pthread_create(&tid, NULL, (void* (*)(void*))executeNMRequest, arg) != 0)
 		{
@@ -644,20 +660,16 @@ void* handleStorageServerConnections(void* args)
             close(new_socket);
             exit(EXIT_FAILURE);
         }
-        if (strcmp(arg->request, "OK") == 0)
+        printf("GOT this here from source %s\n", arg->request);
+        
+        
+        if(send(new_socket, "OK", 2, 0) < 0)
         {
-            printf("GOT OK\n");
-            if(send(new_socket, "OK", 2, 0) < 0)
-            {
-                perror("Send failed");
-                close(new_socket);
-                exit(EXIT_FAILURE);
-            }
+            perror("Send failed");
+            close(new_socket);
+            exit(EXIT_FAILURE);
         }
-        else
-        {
-            printf("GOT NOT OK\n");
-        }
+        
 
         // now recieve the file from the source server
         char buffer[1024];

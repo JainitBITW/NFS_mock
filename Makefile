@@ -1,5 +1,7 @@
 CC = gcc
 CFLAGS = -pthread
+clean:
+	rm -f s n client
 
 all: s n client
 
@@ -10,7 +12,5 @@ n: NamingServerModule.c
 	$(CC) $(CFLAGS) NamingServerModule.c -o n
 
 client: clientfunctions.c
-	$(CC) clientfunctions.c -o client
+	$(CC) $(CFLAGS) clientfunctions.c -o client
 
-clean:
-	rm -f s n client
