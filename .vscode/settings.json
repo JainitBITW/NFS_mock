@@ -4,6 +4,8 @@
         "stat.h": "c",
         "socket.h": "c",
         "libgen.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "ctype.h": "c",
+        "stdio.h": "c"
     }
 }

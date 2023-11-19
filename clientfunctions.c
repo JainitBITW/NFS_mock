@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <ctype.h>
 
 #define NAMING_SERVER_PORT 8001
 #define IP_ADDRESS "127.0.0.1"
