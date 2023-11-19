@@ -335,15 +335,20 @@ void *executeNMRequest(void *arg)
 	{
 		int pathLength = strlen(path);
 		printf("Path length: %s\n", path);
+		char response[1024];
 		if (path[pathLength - 1] == '/')
 		{ // Check if the path ends with '/'
 			if (mkdir(path, 0777) == -1)
 			{ // Attempt to create a directory
 				perror("Error creating directory");
+				strcpy(response, "1");
 			}
 			else
 			{
 				printf("Directory created: %s\n", path);
+
+				strcpy(response, "2");
+				
 			}
 		}
 		else
@@ -352,28 +357,34 @@ void *executeNMRequest(void *arg)
 			if (file == NULL)
 			{
 				perror("Error creating file");
+				strcpy(response, "3");
 			}
 			else
 			{
 				printf("File created: %s\n", path);
+				strcpy(response, "4");
 				fclose(file);
 			}
 		}
+		send(NMSocket, response, strlen(response), 0);
 	}
 	else if (strcmp(command, "DELETE") == 0)
 	{
 		struct stat path_stat;
 		stat(path, &path_stat);
+		char response[1024];
 		if (S_ISDIR(path_stat.st_mode))
 		{ // Check if it's a directory
 			// rmdir only works on empty directories. For non-empty directories, you'll need a more complex function
 			if (rmdir(path) == -1)
 			{
 				perror("Error deleting directory");
+				strcpy(response, "1");
 			}
 			else
 			{
 				printf("Directory deleted: %s\n", path);
+				strcpy(response, "2");
 			}
 		}
 		else
@@ -381,12 +392,16 @@ void *executeNMRequest(void *arg)
 			if (remove(path) == 0)
 			{
 				printf("File deleted: %s\n", path);
+				strcpy(response, "3");
 			}
 			else
 			{
 				perror("Error deleting file");
+				strcpy(response, "4");
 			}
 		}
+		send(NMSocket, response, strlen(response), 0);
+
 	}
 	else if (strncmp(command, "COPY", strlen("COPY")) == 0)
 	{
