@@ -283,6 +283,30 @@ char *getDirectoryPath(const char *path)
 	}
 }
 
+void removeWhitespace(char *inputString)
+{
+	// Initialize indices for reading and writing in the string
+	int readIndex = 0;
+	int writeIndex = 0;
+
+	// Iterate through the string
+	while (inputString[readIndex] != '\0')
+	{
+		// If the current character is not a whitespace character, copy it
+		if (!isspace(inputString[readIndex]))
+		{
+			inputString[writeIndex] = inputString[readIndex];
+			writeIndex++;
+		}
+
+		// Move to the next character in the string
+		readIndex++;
+	}
+
+	// Null-terminate the new string
+	inputString[writeIndex] = '\0';
+}
+
 void *handleClientInput(void *socketDesc)
 {
 	int sock = *(int *)socketDesc;
@@ -305,6 +329,7 @@ void *handleClientInput(void *socketDesc)
 			int i = 0;
 			while (token != NULL)
 			{
+				removeWhitespace(token);
 				tokenArray[i++] = token;
 				token = strtok(NULL, " ");
 			}
@@ -379,6 +404,16 @@ void *handleClientInput(void *socketDesc)
 						return NULL;
 					}
 				}
+				else
+				{
+					char reply[1024];
+					strcpy(reply, "File not Found");
+					if (send(sock, reply, strlen(reply), 0) < 0)
+					{
+						puts("Send failed");
+						return NULL;
+					}
+				}
 			}
 			else if (strcmp(tokenArray[0], "CREATE") == 0)
 			{
@@ -433,6 +468,14 @@ void *handleClientInput(void *socketDesc)
 					printf("IP: %s\n", ip_Address_ss);
 					printf("Port: %d\n", port_ss);
 				}
+				else{
+					foundFlag=1;
+					strcpy(ip_Address_ss, storageServers[0].ipAddress);
+					port_ss = storageServers[0].nmPort;
+					printf("It will be created in Storage Server 1\n");
+					printf("IP: %s\n", ip_Address_ss);
+					printf("Port: %d\n", port_ss);
+				}
 				if (foundFlag == 1)
 				{
 					// connect to the storage server port and ip address
@@ -447,7 +490,7 @@ void *handleClientInput(void *socketDesc)
 						printf("Could not create socket");
 					}
 
-					storageserveraddress.sin_addr.s_addr = inet_addr(s->server.ipAddress);
+					storageserveraddress.sin_addr.s_addr = inet_addr(ip_Address_ss);
 					storageserveraddress.sin_family = AF_INET;
 					storageserveraddress.sin_port = htons(port_ss);
 
@@ -468,13 +511,22 @@ void *handleClientInput(void *socketDesc)
 					}
 
 					// Receive a reply from the server
-					// if (recv(storageserversocket, storageserverreply, 2000, 0) < 0)
-					// {
-					// 	puts("recv failed");
-					// }
+					if (recv(storageserversocket, storageserverreply, 2000, 0) < 0)
+					{
+						puts("recv failed");
+					}
+
+					// Send back to client
+					if (send(sock, storageserverreply, strlen(storageserverreply), 0) < 0)
+					{
+						puts("Send failed");
+						return NULL;
+					}
+
 				}
 				else if (foundFlag == 0)
 				{
+
 				}
 			}
 			else if (strcmp(tokenArray[0], "DELETE") == 0)
@@ -539,9 +591,30 @@ void *handleClientInput(void *socketDesc)
 					}
 
 					// Receive a reply from the server
+					if (recv(storageserversocket, storageserverreply, 2000, 0) < 0)
+					{
+						puts("recv failed");
+					}
+
+					// Send back to client
+					if (send(sock, storageserverreply, strlen(storageserverreply), 0) < 0)
+					{
+						puts("Send failed");
+						return NULL;
+					}
+
+
+
 				}
 				else if (foundFlag == 0)
 				{
+					char reply[1024];
+					strcpy(reply, "5");
+					if (send(sock, reply, strlen(reply), 0) < 0)
+					{
+						puts("Send failed");
+						return NULL;
+					}
 				}
 			}
 			else if (strcmp(tokenArray[0], "COPY") == 0)
@@ -551,10 +624,10 @@ void *handleClientInput(void *socketDesc)
 					printf("Token %d: %s\n", i, tokenArray[i]);
 				}
 				// finding out the storage server for the file
-				char sourcePath[1024] = {'\0'} ;
+				char sourcePath[1024] = {'\0'};
 				strcpy(sourcePath, tokenArray[1]);
 				printf("Source path: %s\n", sourcePath);
-				char destinationPath[1024]= {'\0'};
+				char destinationPath[1024] = {'\0'};
 				strcpy(destinationPath, tokenArray[2]);
 				PathToServerMap *source;
 				PathToServerMap *destination;
@@ -699,7 +772,7 @@ void *handleClientInput(void *socketDesc)
 
 				// send this information to the source storage server
 				char reply[2000];
-				memset(reply,'\0', sizeof(reply));
+				memset(reply, '\0', sizeof(reply));
 				sprintf(reply,
 						"COPY %s %d %s %s",
 						destination->server.ipAddress,
@@ -709,7 +782,7 @@ void *handleClientInput(void *socketDesc)
 				printf("Reply: %s\n", reply);
 				int sock;
 				struct sockaddr_in server;
-				char server_reply[2000]={'\0'};
+				char server_reply[2000] = {'\0'};
 
 				// Create socket
 				sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -738,6 +811,32 @@ void *handleClientInput(void *socketDesc)
 				}
 
 				close(sock);
+			}
+			else if (strcmp(tokenArray[0], "LISTALL") == 0)
+			{
+				// listing all the accessible paths
+				char response[40960]; // sending one at a time
+				response[0] = '\0';
+				strcat(response, "*");
+
+				for (int i = 0; i < storageServerCount; i++)
+				{
+					char index[5];
+					snprintf(index, sizeof(index), "%d", i + 1);
+					strcat(response, index);
+					for (int j = 0; j < storageServers[i].numPaths; j++)
+					{
+						strcat(response, "$");
+						strcat(response, storageServers[i].accessiblePaths[j]);
+					}
+					strcat(response, "*");
+				}
+
+				if (send(sock, response, strlen(response), 0) < 0)
+				{
+					puts("Send failed");
+					return NULL;
+				}
 			}
 		}
 		if (readSize < 0)
