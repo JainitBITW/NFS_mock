@@ -1,49 +1,35 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <sys/stat.h>
 
-char* getDirectoryPath(const char* path) {
-    int length = strlen(path);
+int isDirectory(const char *path) {
+    struct stat fileStat;
 
-    // Find the last occurrence of '/'
-    int lastSlashIndex = -1;
-    for (int i = length - 1; i >= 0; i--) {
-        if (path[i] == '/') {
-            lastSlashIndex = i;
-            break;
+    // Use stat to get information about the file or directory
+    if (stat(path, &fileStat) == 0) {
+        // Check if it's a directory
+        if (S_ISDIR(fileStat.st_mode)) {
+            return 1; // True, it's a directory
+        } else {
+            return 0; // False, it's not a directory
         }
-    }
-
-    if (lastSlashIndex != -1) {
-        // Allocate memory for the new string
-        char* directoryPath = (char*)malloc((lastSlashIndex + 2) * sizeof(char));
-
-        // Copy the directory path into the new string
-        strncpy(directoryPath, path, lastSlashIndex + 1);
-
-        // Add null terminator
-        directoryPath[lastSlashIndex + 1] = '\0';
-
-        return directoryPath;
     } else {
-        // No '/' found, the path is already a directory
-        return strdup(path);  // Duplicate the string to ensure the original is not modified
+        perror("Error getting file/directory information");
+        return -1; // Error
     }
 }
 
 int main() {
-    // Example usage
-    const char* path = "/path/to/some/file.txt";
-    printf("Original path: %s\n", path);
+    const char *path = "./src/1d";
 
-    // Get the directory path
-    char* directoryPath = getDirectoryPath(path);
-    printf("Original path: %s\n", path);
+    int result = isDirectory(path);
 
-    printf("Directory path: %s\n", directoryPath);
-
-    // Don't forget to free the allocated memory when done
-    free(directoryPath);
+    if (result == 1) {
+        printf("%s is a directory.\n", path);
+    } else if (result == 0) {
+        printf("%s is not a directory.\n", path);
+    } else {
+        printf("Error checking %s\n", path);
+    }
 
     return 0;
 }

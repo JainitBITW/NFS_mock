@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <libgen.h>
 
-char NMIPADDRESS[16] = "10.2.135.30"; // Default value
+char NMIPADDRESS[16] ; // Default value
 char SSIPADDRESS[16]; // For storing the IP address
 int CLIENT_PORT;
 int NM_PORT;
@@ -47,6 +47,23 @@ typedef struct
 void handleClientRequest();
 FileSystem fileSystem;
 StorageServer ss;
+
+int isDirectory(const char *path) {
+    struct stat fileStat;
+
+    // Use stat to get information about the file or directory
+    if (stat(path, &fileStat) == 0) {
+        // Check if it's a directory
+        if (S_ISDIR(fileStat.st_mode)) {
+            return 1; // True, it's a directory
+        } else {
+            return 0; // False, it's not a directory
+        }
+    } else {
+        perror("Error getting file/directory information");
+        return -1; // Error
+    }
+}
 
 void update_accessible_paths_recursive(char *path)
 {
@@ -380,6 +397,13 @@ void *executeNMRequest(void *arg)
 
 		// open the file in read mode which path is "path"
 		FILE *fptr1 = fopen(path, "r");
+		int is_dir = isDirectory(path);
+		if (is_dir == 1)
+		{
+			printf("Cannot copy a directory\n");
+			exit(0);
+		}
+		
 		printf("GOT COPY\n");
 		// printf("Command: %s %s %s %s\n", destination_ip, destination_port, path, path);
 		// check if the file is opened or not
@@ -744,7 +768,7 @@ void *handleStorageServerConnections(void *args)
 // The main function could set up the storage server.
 int main(int argc, char *argv[])
 {
-    if (argc != 5) {
+    if (argc != 6) {
         fprintf(stderr, "Usage: %s <NMIPADDRESS> <SSIPADDRESS> <CLIENT_PORT> <NM_PORT> <SS_PORT>\n", argv[0]);
         return 1;
     }
