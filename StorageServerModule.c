@@ -133,6 +133,7 @@ void listDirectoriesRecursively(const char *path) {
     }
 }
 
+
 void listFilesRecursively(const char *path) {
     DIR *dir;
     struct dirent *entry;
@@ -175,7 +176,47 @@ void listFilesRecursively(const char *path) {
         perror("Error opening directory");
     }
 }
+void deleteDirectory(char *path) {
+    DIR *dir;
+    struct dirent *entry;
+    char fullPath[PATH_MAX];
 
+    // Open the directory
+    if ((dir = opendir(path)) == NULL) {
+        perror("opendir");
+        exit(EXIT_FAILURE);
+    }
+
+    // Iterate through each entry in the directory
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;  // Skip "." and ".." entries
+        }
+
+        // Create full path to the entry
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
+
+        // Recursively delete subdirectories
+        if (entry->d_type == DT_DIR) {
+            deleteDirectory(fullPath);
+        } else {
+            // Delete regular files
+            if (unlink(fullPath) != 0) {
+                perror("unlink");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
+    // Close the directory
+    closedir(dir);
+
+    // Remove the directory itself
+    if (rmdir(path) != 0) {
+        perror("rmdir");
+        exit(EXIT_FAILURE);
+    }
+}
 char *getDirectoryPath(const char *path)
 {
 	int length = strlen(path);
@@ -563,16 +604,8 @@ void* executeNMRequest(void* arg)
 		if(S_ISDIR(path_stat.st_mode))
 		{ // Check if it's a directory
 			// rmdir only works on empty directories. For non-empty directories, you'll need a more complex function
-			if(rmdir(path) == -1)
-			{
-				perror("Error deleting directory");
-				strcpy(response, "1");
-			}
-			else
-			{
-				printf("Directory deleted: %s\n", path);
-				strcpy(response, "2");
-			}
+			deleteDirectory(path);
+			printf("Directory deleted: %s\n", path);
 		}
 		else
 		{ // Treat as file
