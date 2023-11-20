@@ -332,34 +332,45 @@ void clientCopy(int clientSocket)
 // ls function to send request to naming server to list all accessible paths
 void clientListAll(int clientSocket)
 {
-    // send request to Naming Server
+    // Send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
 
     char response[40960];
     recv(clientSocket, response, sizeof(response), 0);
 
-    char *token_1 = strtok(response, "*");
-
-    while (token_1 != NULL)
-    {
-        // Tokenize using the second delimiter within each token from the first step
-        char *token2 = strtok(token_1, "$");
-
-        printf("Storage Server: %s\n", token2);
-
-        while (token2 != NULL)
-        {
-            token2 = strtok(NULL, "$");
-            if (token2 != NULL)
-            {
-
-                printf("Accessible path: %s\n", token2);
+    int i = 0;
+    while (response[i] != '\0') {
+        // Check for a new server block
+        if (response[i] == '*') {
+            i++; // Move past the '*'
+            if(response[i] == '\0') break; 
+            // Extract and print the server number
+            printf("\nStorage Server: ");
+            while (response[i] != '$' && response[i] != '\0') {
+                printf("%c", response[i]);
+                i++;
             }
         }
 
-        token_1 = strtok(NULL, "*");
+        // Check for a new path
+        if (response[i] == '$') {
+            i++; // Move past the '$'
+
+            // Extract and print the path
+            printf("\nAccessible path: ");
+            while (response[i] != '$' && response[i] != '*' && response[i] != '\0') {
+                printf("%c", response[i]);
+                i++;
+            }
+        }
     }
+    printf("\n"); // New line at the end
 }
+
+
+
+
+
 
 void removeWhitespace(char *inputString)
 {
