@@ -517,9 +517,9 @@ void get_path_ss(char *path, PathToServerMap *s, int *foundFlag)
 		strcpy(s->path, path);
 		foundFlag = 1;
 	}
-	else {
-		HASH_FIND_STR(serversByPath, path, s);
-	}
+
+	HASH_FIND_STR(serversByPath, path, s);
+
 	if(s != NULL)
 	{
 		char t[1024];
@@ -678,9 +678,8 @@ void *handleClientInput(void *socketDesc)
 					strcpy(s->path, path);
 					foundFlag = 1;
 				}
-				else {
-					HASH_FIND_STR(serversByPath, path, s);
-				}
+
+				HASH_FIND_STR(serversByPath, path, s);
 
 				if(s != NULL)
 				{
@@ -790,9 +789,8 @@ void *handleClientInput(void *socketDesc)
 					strcpy(s->path, path);
 					foundFlag = 1;
 				}
-				else {
-					HASH_FIND_STR(serversByPath, path, s);
-				}
+
+				HASH_FIND_STR(serversByPath, path, s);
 
 
 				if (s != NULL)
@@ -921,9 +919,9 @@ void *handleClientInput(void *socketDesc)
 					strcpy(s->path, path);
 					foundFlag = 1;
 				}
-				else {
-					HASH_FIND_STR(serversByPath, path, s);
-				}
+
+				HASH_FIND_STR(serversByPath, path, s);
+
 
 				if(s != NULL)
 				{
@@ -1206,6 +1204,7 @@ void *handleClientInput(void *socketDesc)
 				if (foundFlag == 0)
 				{
 					printf("Destination path not found\n");
+					send(clientsock, "Destination path not found", strlen("Destination path not found"), 0);
 					return NULL;
 				}
 

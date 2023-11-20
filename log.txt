@@ -1,2 +1,39 @@
-Mon Nov 20 23:44:08 2023: Initializing Naming Server...
-Mon Nov 20 23:44:08 2023: Bind failed
+Tue Nov 21 02:26:19 2023: Initializing Naming Server...
+Tue Nov 21 02:26:19 2023: Naming Server started listening...
+Tue Nov 21 02:26:21 2023: Received storage server 1 details:
+Tue Nov 21 02:26:21 2023: IP Address: 127.0.0.2
+Tue Nov 21 02:26:21 2023: NM Port: 5000
+Tue Nov 21 02:26:21 2023: Client Port: 4000
+Tue Nov 21 02:26:21 2023: NUM PATHS: 11
+Tue Nov 21 02:26:21 2023: Accessible Paths: ./src
+Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/q
+Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/jainit
+Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/NamingServer.c
+Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/helloWorld.txt
+Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/2d
+Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/2d/1d
+Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/2d/1d/1
+Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/2d/1d/11
+Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/2d/ct_new
+Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/yo
+Tue Nov 21 02:26:21 2023: Registration Successful
+Tue Nov 21 02:26:24 2023: Client connected...
+Tue Nov 21 02:26:46 2023: Received command: COPY ./src/jainit ./src/1/2/3
+
+Tue Nov 21 02:26:46 2023: Token 0: COPY
+Tue Nov 21 02:26:46 2023: Token 1: ./src/jainit
+Tue Nov 21 02:26:46 2023: Token 2: ./src/1/2/3
+Tue Nov 21 02:26:46 2023: Source path: ./src/jainit
+Tue Nov 21 02:26:46 2023: Source path: ./src/jainit
+Tue Nov 21 02:26:46 2023: Destination path: ./src/1/2/3
+Tue Nov 21 02:26:46 2023: length of source path: 12
+Tue Nov 21 02:26:46 2023: length of destination path: 11
+Tue Nov 21 02:26:46 2023: Storage server 0
+Tue Nov 21 02:26:46 2023: Path 0: ./src
+Tue Nov 21 02:26:46 2023: length of path: 5
+Tue Nov 21 02:26:46 2023: Path 1: ./src/q
+Tue Nov 21 02:26:46 2023: length of path: 7
+Tue Nov 21 02:26:46 2023: Path 2: ./src/jainit
+Tue Nov 21 02:26:46 2023: length of path: 12
+Tue Nov 21 02:26:46 2023: Found source path
+Tue Nov 21 02:26:46 2023: Found flagasdfasdf: 1
