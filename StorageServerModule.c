@@ -54,19 +54,6 @@ typedef struct StorageServer
 } StorageServer;
 
 
-// LRU Caching
-typedef struct LRUCache {
-    StorageServer data;
-	char keyPath[100];
-    struct LRUCache *prev, *next;
-} LRUCache;
-
-
-LRUCache *head = NULL;
-int cacheSize = 0;
-int cacheCapacity = 0;
-
-
 typedef struct
 {
 	char request[1024]; // Adjust size as needed
@@ -84,76 +71,6 @@ StorageServer ss;
 char writePaths[100][100];
 int writePathsCount = 0;
 pthread_mutex_t writePathsMutex = PTHREAD_MUTEX_INITIALIZER;
-
-
-void initializeLRUCache(int capacity) {
-    head = NULL;
-    cacheSize = 0;
-    cacheCapacity = capacity;
-}
-
-int accessStorageServerCache(char* keyPath) {
-    LRUCache* temp = head;
-    LRUCache* prevNode = NULL;
-
-    // Search for the server in the cache
-    while (temp != NULL && strcmp(temp->keyPath, keyPath) != 0) {
-        prevNode = temp;
-        temp = temp->next;
-    }
-
-    if (temp == NULL) { // Server not found in cache
-		return 0;
-    }
-	if (prevNode != NULL) {
-		prevNode->next = temp->next;
-		if (temp->next != NULL) {
-			temp->next->prev = prevNode;
-		}
-		temp->next = head;
-		temp->prev = NULL;
-		head->prev = temp;
-		head = temp;
-	}
-	return 1;
-}
-
-void addServertoCache(char* keyPath, StorageServer server) {
-	LRUCache* newNode = (LRUCache*)malloc(sizeof(LRUCache));
-	newNode->data = server;
-	strcpy(newNode->keyPath, keyPath);
-	newNode->next = head;
-	newNode->prev = NULL;
-
-	if (head != NULL) {
-	    head->prev = newNode;
-	}
-	head = newNode;
-
-	if (cacheSize == cacheCapacity) { // Remove least recently used server
-	    LRUCache* toRemove = head;
-	    while (toRemove->next != NULL) {
-	        toRemove = toRemove->next;
-	    }
-	    if (toRemove->prev != NULL) {
-	        toRemove->prev->next = NULL;
-	    }
-	    free(toRemove);
-	} else {
-	    cacheSize++;
-	}
-}
-
-void freeLRUCache() {
-    LRUCache* current = head;
-    while (current != NULL) {
-        LRUCache* next = current->next;
-        free(current);
-        current = next;
-    }
-    head = NULL;
-    cacheSize = 0;
-}
 
 
 int isDirectory(const char* path)
@@ -649,6 +566,7 @@ void* executeClientRequest(void* arg)
 			{
 				strcpy(writePaths[writePathsCount], path);
 				writePathsCount++;
+				pthread_mutex_unlock(&writePathsMutex);
 				break;
 			}
 			// Unlock the mutex
@@ -864,6 +782,7 @@ void* executeNMRequest(void* arg)
 			{
 				strcpy(writePaths[writePathsCount], path);
 				writePathsCount++;
+				pthread_mutex_unlock(&writePathsMutex);
 				break;
 			}
 			// Unlock the mutex
