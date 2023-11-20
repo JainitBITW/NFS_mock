@@ -79,6 +79,13 @@ void handleClientRequest();
 FileSystem fileSystem;
 StorageServer ss;
 
+
+// Global Array for List of Paths where Write is performed
+char writePaths[100][100];
+int writePathsCount = 0;
+pthread_mutex_t writePathsMutex = PTHREAD_MUTEX_INITIALIZER;
+
+
 void initializeLRUCache(int capacity) {
     head = NULL;
     cacheSize = 0;
@@ -625,6 +632,30 @@ void* executeClientRequest(void* arg)
 		char content[4096]; // Adjust size as needed
 		sscanf(request, "%*s %*s %[^\t\n]", content); // Reads the content part of the request
 
+		// Check if the file is not present in the writePath 
+		while(1) {
+			// Lock the mutex
+			pthread_mutex_lock(&writePathsMutex);
+			int isPresent = 0;
+			for(int i = 0; i < writePathsCount; i++)
+			{
+				if(strcmp(writePaths[i], path) == 0)
+				{
+					isPresent = 1;
+					break;
+				}
+			}
+			if(isPresent == 0)
+			{
+				strcpy(writePaths[writePathsCount], path);
+				writePathsCount++;
+				break;
+			}
+			// Unlock the mutex
+			pthread_mutex_unlock(&writePathsMutex);
+			usleep(1000);
+		}
+
 		FILE* file = fopen(path, "w");
 		if(file == NULL)
 		{
@@ -647,6 +678,24 @@ void* executeClientRequest(void* arg)
 			}
 			fclose(file);
 		}
+
+		// Removing the path from writePath Array
+		// Add Mutex Lock
+		pthread_mutex_lock(&writePathsMutex);
+		for(int i = 0; i < writePathsCount; i++)
+		{
+			if(strcmp(writePaths[i], path) == 0)
+			{
+				for(int j = i; j < writePathsCount - 1; j++)
+				{
+					strcpy(writePaths[j], writePaths[j + 1]);
+				}
+				writePathsCount--;
+				break;
+			}
+		}
+		// Unlock the mutex
+		pthread_mutex_unlock(&writePathsMutex);
 	}
 	else
 	{
@@ -798,6 +847,29 @@ void* executeNMRequest(void* arg)
 	}
 	else if(strcmp(command, "DELETE") == 0)
 	{
+		// Check if the file is not present in the writePath 
+		while(1) {
+			// Lock the mutex
+			pthread_mutex_lock(&writePathsMutex);
+			int isPresent = 0;
+			for(int i = 0; i < writePathsCount; i++)
+			{
+				if(strcmp(writePaths[i], path) == 0)
+				{
+					isPresent = 1;
+					break;
+				}
+			}
+			if(isPresent == 0)
+			{
+				strcpy(writePaths[writePathsCount], path);
+				writePathsCount++;
+				break;
+			}
+			// Unlock the mutex
+			pthread_mutex_unlock(&writePathsMutex);
+			usleep(1000);
+		}
 		struct stat path_stat;
 		stat(path, &path_stat);
 		char response[1024];
@@ -820,6 +892,23 @@ void* executeNMRequest(void* arg)
 				strcpy(response, "4");
 			}
 		}
+		// Removing the path from writePath Array
+		// Add Mutex Lock
+		pthread_mutex_lock(&writePathsMutex);
+		for(int i = 0; i < writePathsCount; i++)
+		{
+			if(strcmp(writePaths[i], path) == 0)
+			{
+				for(int j = i; j < writePathsCount - 1; j++)
+				{
+					strcpy(writePaths[j], writePaths[j + 1]);
+				}
+				writePathsCount--;
+				break;
+			}
+		}
+		// Unlock the mutex
+		pthread_mutex_unlock(&writePathsMutex);
 		send(NMSocket, response, strlen(response), 0);
 	}
 	else if(strncmp(command, "COPY", strlen("COPY")) == 0)
