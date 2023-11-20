@@ -53,6 +53,20 @@ typedef struct StorageServer
 		// Other metadata as needed
 } StorageServer;
 
+
+// LRU Caching
+typedef struct LRUCache {
+    StorageServer data;
+	char keyPath[100];
+    struct LRUCache *prev, *next;
+} LRUCache;
+
+
+LRUCache *head = NULL;
+int cacheSize = 0;
+int cacheCapacity = 0;
+
+
 typedef struct
 {
 	char request[1024]; // Adjust size as needed
@@ -64,6 +78,76 @@ int fileCount = 0;
 void handleClientRequest();
 FileSystem fileSystem;
 StorageServer ss;
+
+void initializeLRUCache(int capacity) {
+    head = NULL;
+    cacheSize = 0;
+    cacheCapacity = capacity;
+}
+
+int accessStorageServerCache(char* keyPath) {
+    LRUCache* temp = head;
+    LRUCache* prevNode = NULL;
+
+    // Search for the server in the cache
+    while (temp != NULL && strcmp(temp->keyPath, keyPath) != 0) {
+        prevNode = temp;
+        temp = temp->next;
+    }
+
+    if (temp == NULL) { // Server not found in cache
+		return 0;
+    }
+	if (prevNode != NULL) {
+		prevNode->next = temp->next;
+		if (temp->next != NULL) {
+			temp->next->prev = prevNode;
+		}
+		temp->next = head;
+		temp->prev = NULL;
+		head->prev = temp;
+		head = temp;
+	}
+	return 1;
+}
+
+void addServertoCache(char* keyPath, StorageServer server) {
+	LRUCache* newNode = (LRUCache*)malloc(sizeof(LRUCache));
+	newNode->data = server;
+	strcpy(newNode->keyPath, keyPath);
+	newNode->next = head;
+	newNode->prev = NULL;
+
+	if (head != NULL) {
+	    head->prev = newNode;
+	}
+	head = newNode;
+
+	if (cacheSize == cacheCapacity) { // Remove least recently used server
+	    LRUCache* toRemove = head;
+	    while (toRemove->next != NULL) {
+	        toRemove = toRemove->next;
+	    }
+	    if (toRemove->prev != NULL) {
+	        toRemove->prev->next = NULL;
+	    }
+	    free(toRemove);
+	} else {
+	    cacheSize++;
+	}
+}
+
+void freeLRUCache() {
+    LRUCache* current = head;
+    while (current != NULL) {
+        LRUCache* next = current->next;
+        free(current);
+        current = next;
+    }
+    head = NULL;
+    cacheSize = 0;
+}
+
 
 int isDirectory(const char* path)
 {
@@ -456,6 +540,19 @@ void* executeClientRequest(void* arg)
 		}
 		else
 		{
+
+			struct tm *tm;
+			char last_modified[30], last_accessed[30];
+
+			// Convert last modification time
+			tm = localtime(&statbuf.st_mtime);
+			strftime(last_modified, sizeof(last_modified), "%Y-%m-%d %H:%M:%S", tm);
+
+			// Convert last accessed time
+			tm = localtime(&statbuf.st_atime);
+			strftime(last_accessed, sizeof(last_accessed), "%Y-%m-%d %H:%M:%S", tm);
+
+
 			char response[1024];
 			char permissions[11];
 
@@ -474,13 +571,15 @@ void* executeClientRequest(void* arg)
 					 (statbuf.st_mode & S_IWOTH) ? 'w' : '-',
 					 (statbuf.st_mode & S_IXOTH) ? 'x' : '-');
 
-			// Create a response string with file size and permissions
+			// Append additional metadata to the response
 			snprintf(response,
-					 sizeof(response),
-					 "Size of %s: %ld bytes, Permissions: %s",
-					 path,
-					 statbuf.st_size,
-					 permissions);
+					sizeof(response),
+					"Size of %s: %ld bytes, Permissions: %s, Last Modified: %s, Last Accessed: %s",
+					path,
+					statbuf.st_size,
+					permissions,
+					last_modified,
+					last_accessed);
 
 			// Send the response to the client
 			send(clientSocket, response, strlen(response), 0);
