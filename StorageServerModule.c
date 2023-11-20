@@ -92,150 +92,175 @@ int isDirectory(const char* path)
 char directories[MAX_DIRECTORIES][MAX_PATH_LENGTH];
 int directoryCount = 0;
 
-void listDirectoriesRecursively(const char *path) {
-    DIR *dir;
-    struct dirent *entry;
+void listDirectoriesRecursively(const char* path)
+{
+	DIR* dir;
+	struct dirent* entry;
 
-    // Store the current directory path in the array
-    strncpy(directories[directoryCount], path, sizeof(directories[directoryCount]) - 1);
-    directories[directoryCount][sizeof(directories[directoryCount]) - 1] = '\0';
-    directoryCount++;
+	// Store the current directory path in the array
+	strncpy(directories[directoryCount], path, sizeof(directories[directoryCount]) - 1);
+	directories[directoryCount][sizeof(directories[directoryCount]) - 1] = '\0';
+	directoryCount++;
 
-    // Open the directory
-    if ((dir = opendir(path)) != NULL) {
-        // Read each entry in the directory
-        while ((entry = readdir(dir)) != NULL) {
-            // Skip "." and ".."
-            if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-                // Construct the full path of the entry
-                char fullpath[PATH_MAX];
-                snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
+	// Open the directory
+	if((dir = opendir(path)) != NULL)
+	{
+		// Read each entry in the directory
+		while((entry = readdir(dir)) != NULL)
+		{
+			// Skip "." and ".."
+			if(strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
+			{
+				// Construct the full path of the entry
+				char fullpath[PATH_MAX];
+				snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
 
-                // Check if the entry is a directory
-                struct stat statbuf;
-                if (stat(fullpath, &statbuf) == 0 && S_ISDIR(statbuf.st_mode)) {
-                    // Recursively list directories within the subdirectory
-                    listDirectoriesRecursively(fullpath);
+				// Check if the entry is a directory
+				struct stat statbuf;
+				if(stat(fullpath, &statbuf) == 0 && S_ISDIR(statbuf.st_mode))
+				{
+					// Recursively list directories within the subdirectory
+					listDirectoriesRecursively(fullpath);
 
-                    // Ensure we don't exceed the array size
-                    if (directoryCount >= MAX_DIRECTORIES) {
-                        printf("Too many directories. Increase the array size.\n");
-                        break;
-                    }
-                }
-            }
-        }
+					// Ensure we don't exceed the array size
+					if(directoryCount >= MAX_DIRECTORIES)
+					{
+						printf("Too many directories. Increase the array size.\n");
+						break;
+					}
+				}
+			}
+		}
 
-        // Close the directory
-        closedir(dir);
-    } else {
-        perror("Error opening directory");
-    }
+		// Close the directory
+		closedir(dir);
+	}
+	else
+	{
+		perror("Error opening directory");
+	}
 }
 
+void listFilesRecursively(const char* path)
+{
+	DIR* dir;
+	struct dirent* entry;
 
-void listFilesRecursively(const char *path) {
-    DIR *dir;
-    struct dirent *entry;
+	// Open the directory
+	if((dir = opendir(path)) != NULL)
+	{
+		// Read each entry in the directory
+		while((entry = readdir(dir)) != NULL)
+		{
+			// Skip "." and ".."
+			if(strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
+			{
+				// Construct the full path of the entry
+				char fullpath[PATH_MAX];
+				snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
 
-    // Open the directory
-    if ((dir = opendir(path)) != NULL) {
-        // Read each entry in the directory
-        while ((entry = readdir(dir)) != NULL) {
-            // Skip "." and ".."
-            if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-                // Construct the full path of the entry
-                char fullpath[PATH_MAX];
-                snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
+				// Check if the entry is a regular file
+				struct stat statbuf;
+				if(stat(fullpath, &statbuf) == 0 && S_ISREG(statbuf.st_mode))
+				{
+					// Store the file path in the array
+					strncpy(files[fileCount], fullpath, sizeof(files[fileCount]) - 1);
+					files[fileCount][sizeof(files[fileCount]) - 1] = '\0';
+					fileCount++;
 
-                // Check if the entry is a regular file
-                struct stat statbuf;
-                if (stat(fullpath, &statbuf) == 0 && S_ISREG(statbuf.st_mode)) {
-                    // Store the file path in the array
-                    strncpy(files[fileCount], fullpath, sizeof(files[fileCount]) - 1);
-                    files[fileCount][sizeof(files[fileCount]) - 1] = '\0';
-                    fileCount++;
+					// Ensure we don't exceed the array size
+					if(fileCount >= MAX_FILES)
+					{
+						printf("Too many files. Increase the array size.\n");
+						break;
+					}
+				}
 
-                    // Ensure we don't exceed the array size
-                    if (fileCount >= MAX_FILES) {
-                        printf("Too many files. Increase the array size.\n");
-                        break;
-                    }
-                }
+				// If it's a directory, recursively list files within the subdirectory
+				else if(S_ISDIR(statbuf.st_mode))
+				{
+					listFilesRecursively(fullpath);
+				}
+			}
+		}
 
-                // If it's a directory, recursively list files within the subdirectory
-                else if (S_ISDIR(statbuf.st_mode)) {
-                    listFilesRecursively(fullpath);
-                }
-            }
-        }
-
-        // Close the directory
-        closedir(dir);
-    } else {
-        perror("Error opening directory");
-    }
+		// Close the directory
+		closedir(dir);
+	}
+	else
+	{
+		perror("Error opening directory");
+	}
 }
-void deleteDirectory(char *path) {
-    DIR *dir;
-    struct dirent *entry;
-    char fullPath[PATH_MAX];
+void deleteDirectory(char* path)
+{
+	DIR* dir;
+	struct dirent* entry;
+	char fullPath[PATH_MAX];
 
-    // Open the directory
-    if ((dir = opendir(path)) == NULL) {
-        perror("opendir");
-        exit(EXIT_FAILURE);
-    }
+	// Open the directory
+	if((dir = opendir(path)) == NULL)
+	{
+		perror("opendir");
+		exit(EXIT_FAILURE);
+	}
 
-    // Iterate through each entry in the directory
-    while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
-            continue;  // Skip "." and ".." entries
-        }
+	// Iterate through each entry in the directory
+	while((entry = readdir(dir)) != NULL)
+	{
+		if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+		{
+			continue; // Skip "." and ".." entries
+		}
 
-        // Create full path to the entry
-        snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
+		// Create full path to the entry
+		snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
 
-        // Recursively delete subdirectories
-        if (entry->d_type == DT_DIR) {
-            deleteDirectory(fullPath);
-        } else {
-            // Delete regular files
-            if (unlink(fullPath) != 0) {
-                perror("unlink");
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
+		// Recursively delete subdirectories
+		if(entry->d_type == DT_DIR)
+		{
+			deleteDirectory(fullPath);
+		}
+		else
+		{
+			// Delete regular files
+			if(unlink(fullPath) != 0)
+			{
+				perror("unlink");
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
 
-    // Close the directory
-    closedir(dir);
+	// Close the directory
+	closedir(dir);
 
-    // Remove the directory itself
-    if (rmdir(path) != 0) {
-        perror("rmdir");
-        exit(EXIT_FAILURE);
-    }
+	// Remove the directory itself
+	if(rmdir(path) != 0)
+	{
+		perror("rmdir");
+		exit(EXIT_FAILURE);
+	}
 }
-char *getDirectoryPath(const char *path)
+char* getDirectoryPath(const char* path)
 {
 	int length = strlen(path);
 
 	// Find the last occurrence of '/'
 	int lastSlashIndex = -1;
-	for (int i = length - 1; i >= 0; i--)
+	for(int i = length - 1; i >= 0; i--)
 	{
-		if (path[i] == '/')
+		if(path[i] == '/')
 		{
 			lastSlashIndex = i;
 			break;
 		}
 	}
 
-	if (lastSlashIndex != -1)
+	if(lastSlashIndex != -1)
 	{
 		// Allocate memory for the new string
-		char *directoryPath = (char *)malloc((lastSlashIndex + 1) * sizeof(char));
+		char* directoryPath = (char*)malloc((lastSlashIndex + 1) * sizeof(char));
 
 		// Copy the directory path into the new string
 		strncpy(directoryPath, path, lastSlashIndex);
@@ -252,37 +277,47 @@ char *getDirectoryPath(const char *path)
 	}
 }
 
-char* replacePrefix(char *originalString, const char *prefixToReplace, const char *replacementString) {
-    // Find the position of the prefix in the original string
-    char *position = strstr(originalString, prefixToReplace);
+char* replacePrefix(char* originalString,
+					const char* prefixToReplace,
+					const char* replacementString)
+{
+	// Find the position of the prefix in the original string
+	char* position = strstr(originalString, prefixToReplace);
 
-    if (position != NULL) {
-        // Calculate the length of the prefix
-        size_t prefixLength = position - originalString;
+	if(position != NULL)
+	{
+		// Calculate the length of the prefix
+		size_t prefixLength = position - originalString;
 
-        // Calculate the length of the remaining part after the prefix
-        size_t remainingLength = strlen(originalString) - prefixLength;
+		// Calculate the length of the remaining part after the prefix
+		size_t remainingLength = strlen(originalString) - prefixLength;
 
-        // Allocate memory for the new string
-        char *newString = (char *)malloc(prefixLength + strlen(replacementString) + remainingLength + 1);
+		// Allocate memory for the new string
+		char* newString =
+			(char*)malloc(prefixLength + strlen(replacementString) + remainingLength + 1);
 
-        if (newString != NULL) {
-            // Copy the replacement string
-            strncpy(newString, replacementString, strlen(replacementString));
-            newString[strlen(replacementString)] = '\0';
+		if(newString != NULL)
+		{
+			// Copy the replacement string
+			strncpy(newString, replacementString, strlen(replacementString));
+			newString[strlen(replacementString)] = '\0';
 
-            // Concatenate the remaining part of the original string
-            strcat(newString, position + strlen(prefixToReplace));
+			// Concatenate the remaining part of the original string
+			strcat(newString, position + strlen(prefixToReplace));
 
-            return newString;
-        } else {
-            perror("Memory allocation error");
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        // If the prefix is not found, return a copy of the original string
-        return strdup(originalString);
-    }
+			return newString;
+		}
+		else
+		{
+			perror("Memory allocation error");
+			exit(EXIT_FAILURE);
+		}
+	}
+	else
+	{
+		// If the prefix is not found, return a copy of the original string
+		return strdup(originalString);
+	}
 }
 
 void update_accessible_paths_recursive(char* path)
@@ -546,21 +581,87 @@ void* executeNMRequest(void* arg)
 	sscanf(request, "%s %s", command, path);
 	if(strcmp(command, "COPY") == 0)
 	{
-		printf("GOT here  %s\n", request);
+		// printf("GOT here  %s\n", request);
 		sscanf(request, "%s %s %s %s %s", command, destination_ip, destination_port, path, path2);
 		printf("Command: %s %s %s %s %s\n", command, destination_ip, destination_port, path, path2);
-		printf("GOT COPY\n");
+		// printf("GOT COPY\n");
 	}
 	else
 	{
 		sscanf(request, "%s %s", command, path);
 
-		printf("Command1: %s %s\n", command, path);
-		printf("Command2: %s\n", path);
-		printf("Command3: %s\n", command);
+		// printf("Command1: %s %s\n", command, path);
+		// printf("Command2: %s\n", path);
+		// printf("Command3: %s\n", command);
 	}
 
-	if(strcmp(command, "CREATE") == 0)
+	if(strcmp(command, "GETPATHS") == 0)
+	{
+		// send the number of paths to the nm
+		memset(ss.accessiblePaths, '\0', sizeof(ss.accessiblePaths));
+		// Add more conditions as needed
+		ss.numPaths = 1;
+		strcpy(ss.accessiblePaths[0], MOUNT);
+		update_accessible_paths_recursive(MOUNT);
+		char response[1024];
+		memset(response, '\0', sizeof(response));
+		sprintf(response, "%d", ss.numPaths);
+		if(send(NMSocket, response, strlen(response), 0) < 0)
+		{
+			perror("Send failed");
+			exit(EXIT_FAILURE);
+		}
+
+		// recieve the response from the nm
+		char buffer[1024];
+		int totalRead = 0;
+		memset(buffer, '\0', sizeof(buffer));
+		if(recv(NMSocket, buffer, sizeof(buffer), 0) < 0)
+		{
+			perror("recv failed");
+			exit(EXIT_FAILURE);
+		}
+		if(strcmp(response, buffer) != 0)
+		{
+			printf("Error in copying the files\n");
+			memset(response, '\0', sizeof(response));
+			strcpy(response, "1");
+			send(NMSocket, response, strlen(response), 0);
+			return NULL;
+		}
+		else
+		{
+			memset(response, '\0', sizeof(response));
+			strcpy(response, "OK");
+			send(NMSocket, response, strlen(response), 0);
+		}
+		for (int _path =0; _path < ss.numPaths; _path++)
+		{
+			// send the path to the nm
+			if(send(NMSocket, ss.accessiblePaths[_path], strlen(ss.accessiblePaths[_path]), 0) < 0)
+			{
+				perror("Send failed");
+				exit(EXIT_FAILURE);
+			}
+			// recieve the response from the nm
+			char buffer2[1024];
+			totalRead = 0;
+			memset(buffer2, '\0', sizeof(buffer2));
+			if(recv(NMSocket, buffer2, sizeof(buffer2), 0) < 0)
+			{
+				perror("recv failed");
+				exit(EXIT_FAILURE);
+			}
+			if(strcmp("OK", buffer2) != 0)
+			{
+				printf("Error in copying the files\n");
+				memset(response, '\0', sizeof(response));
+				strcpy(response, "2");
+				return NULL;
+			}
+		}
+	}
+	else if(strcmp(command, "CREATE") == 0)
 	{
 		int pathLength = strlen(path);
 		printf("Path length: %s\n", path);
@@ -643,6 +744,11 @@ void* executeNMRequest(void* arg)
 			if(sock < 0)
 			{
 				perror("Could not create socket");
+				//send this to nm as error
+				memset(response, '\0', sizeof(response));
+				strcpy(response, "19");
+				send(NMSocket, response, strlen(response), 0);
+				close(sock);
 				return NULL;
 			}
 			// set the server address
@@ -653,32 +759,41 @@ void* executeNMRequest(void* arg)
 			if(connect(sock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0)
 			{
 				perror("Connect failed. Error");
+				memset(response, '\0', sizeof(response));
+
+				strcpy(response, "2");
+				//send this to nm as error
+				send(NMSocket, response, strlen(response), 0);
+				close(sock);
 				return NULL;
 			}
 			// send the file path to the destination server
-			if (send(sock, response, strlen(response), 0) < 0)
+			if(send(sock, response, strlen(response), 0) < 0)
 			{
 				perror("Send failed");
 				close(sock);
-				exit(EXIT_FAILURE);
+				return NULL;
 			}
 
 			// recieve the response from the destination server
 			char buffer[1024];
 			int totalRead = 0;
 			memset(buffer, '\0', sizeof(buffer));
-			if (recv(sock, buffer, sizeof(buffer), 0) < 0)
+			if(recv(sock, buffer, sizeof(buffer), 0) < 0)
 			{
 				perror("recv failed");
 				close(sock);
 				exit(EXIT_FAILURE);
 			}
 
-			if(strncmp(buffer, "OK", strlen("OK")) != 0)
+			if(strncmp(buffer, "FOLDER", strlen("FOLDER")) != 0)
 			{
-				printf("Error in copying the directory\n");
+				printf("Error in Identifying FOLDER \n");
 				close(sock);
-				exit(EXIT_FAILURE);
+				memset(response, '\0', sizeof(response));
+				strcpy(response, "3");
+				send(NMSocket, response, strlen(response), 0);
+				return NULL;
 			}
 			printf("Server reply: %s\n", buffer);
 			// now create the directory in the destination server
@@ -689,7 +804,7 @@ void* executeNMRequest(void* arg)
 			char response2[1024];
 			memset(response2, '\0', sizeof(response2));
 			sprintf(response2, "%d", directoryCount);
-			if (send(sock, response2, strlen(response2), 0) < 0)
+			if(send(sock, response2, strlen(response2), 0) < 0)
 			{
 				perror("Send failed");
 				close(sock);
@@ -698,7 +813,7 @@ void* executeNMRequest(void* arg)
 			//now recieve the response from the destination server
 			char buffer2[1024];
 			totalRead = 0;
-			if (recv(sock, buffer2, sizeof(buffer2), 0) < 0)
+			if(recv(sock, buffer2, sizeof(buffer2), 0) < 0)
 			{
 				perror("recv failed");
 				close(sock);
@@ -706,24 +821,27 @@ void* executeNMRequest(void* arg)
 			}
 			// check the number of directories from the destination server
 			printf("Server reply: %s\n", buffer2);
-			if(strcmp(response2, buffer2)!=0)
+			if(strcmp(response2, buffer2) != 0)
 			{
 				printf("Error in copying the directory\n");
+				memset(response, '\0', sizeof(response));
+				strcpy(response, "4");
+				send(NMSocket, response, strlen(response), 0);
 				close(sock);
-				exit(EXIT_FAILURE);
+				return NULL;
 			}
 
 			// now send the directories to the destination server with replaced source parent with destination parent
 			char* parent_source = getDirectoryPath(path);
 
 			// now in a for loop send all the directories to the destination server
-			for( int dir_ =0 ; dir_ < directoryCount ; dir_++)
+			for(int dir_ = 0; dir_ < directoryCount; dir_++)
 			{
 				char* parent_destination = getDirectoryPath(directories[dir_]);
 				char* new_path = replacePrefix(directories[dir_], parent_source, path2);
 				printf("new path %s\n", new_path);
 				// send the file path to the destination server
-				if (send(sock, new_path, strlen(new_path), 0) < 0)
+				if(send(sock, new_path, strlen(new_path), 0) < 0)
 				{
 					perror("Send failed");
 					close(sock);
@@ -732,7 +850,7 @@ void* executeNMRequest(void* arg)
 				// recieve the response from the destination server
 				char buffer3[1024];
 				totalRead = 0;
-				if (recv(sock, buffer3, sizeof(buffer3), 0) < 0)
+				if(recv(sock, buffer3, sizeof(buffer3), 0) < 0)
 				{
 					perror("recv failed");
 					close(sock);
@@ -742,11 +860,15 @@ void* executeNMRequest(void* arg)
 				if(strncmp(buffer3, "OK", strlen("OK")) != 0)
 				{
 					printf("Error in copying the directory\n");
+					memset(response, '\0', sizeof(response));
+					strcpy(response, "5");
+					send(NMSocket, response, strlen(response), 0);
 					close(sock);
-					exit(EXIT_FAILURE);
+					// exit(EXIT_FAILURE);
+					return NULL;
 				}
 			}
-			
+
 			// now we need to send the files to the destination server
 			fileCount = 0;
 			memset(files, '\0', sizeof(files));
@@ -755,7 +877,7 @@ void* executeNMRequest(void* arg)
 			char response3[1024];
 			memset(response3, '\0', sizeof(response3));
 			sprintf(response3, "%d", fileCount);
-			if (send(sock, response3, strlen(response3), 0) < 0)
+			if(send(sock, response3, strlen(response3), 0) < 0)
 			{
 				perror("Send failed");
 				close(sock);
@@ -764,7 +886,7 @@ void* executeNMRequest(void* arg)
 			//now recieve the response from the destination server
 			char buffer4[1024];
 			totalRead = 0;
-			if (recv(sock, buffer4, sizeof(buffer4), 0) < 0)
+			if(recv(sock, buffer4, sizeof(buffer4), 0) < 0)
 			{
 				perror("recv failed");
 				close(sock);
@@ -772,20 +894,24 @@ void* executeNMRequest(void* arg)
 			}
 			// check the number of files from the destination server
 			printf("Server reply: %s\n", buffer4);
-			if(strcmp(response3, buffer4)!=0)
+			if(strcmp(response3, buffer4) != 0)
 			{
-				printf("Error in copying the directory\n");
+				printf("Error in copying the files\n");
+				memset(response, '\0', sizeof(response));
+				strcpy(response, "6");
+				send(NMSocket, response, strlen(response), 0);
+
 				close(sock);
 				exit(EXIT_FAILURE);
 			}
 			// now send the files to the destination server with replaced source parent with destination parent
-			for(int _file = 0 ; _file < fileCount ; _file++)
+			for(int _file = 0; _file < fileCount; _file++)
 			{
 				char* parent_source = getDirectoryPath(path);
 				char* new_path = replacePrefix(files[_file], parent_source, path2);
 				printf("new path %s\n", new_path);
 				// send the file path to the destination server
-				if (send(sock, new_path, strlen(new_path), 0) < 0)
+				if(send(sock, new_path, strlen(new_path), 0) < 0)
 				{
 					perror("Send failed");
 					close(sock);
@@ -794,7 +920,7 @@ void* executeNMRequest(void* arg)
 				// recieve the response from the destination server
 				char buffer5[1024];
 				totalRead = 0;
-				if (recv(sock, buffer5, sizeof(buffer5), 0) < 0)
+				if(recv(sock, buffer5, sizeof(buffer5), 0) < 0)
 				{
 					perror("recv failed");
 					close(sock);
@@ -809,14 +935,14 @@ void* executeNMRequest(void* arg)
 				}
 				// now we need to recieve the file from the source server
 				char buffer6[1024];
-				 totalRead = 0;
+				totalRead = 0;
 				// read teh file from the source server
 				FILE* file = fopen(files[_file], "r");
 				if(file == NULL)
 				{
 					printf("Cannot open file %s \n", files[_file]);
-					exit(0);
-
+					send(NMSocket, "13", strlen("8"), 0);
+					return NULL;
 				}
 				// copy the contents of the file in buffer to send it to the destination server
 				char bufferread[1024];
@@ -833,8 +959,8 @@ void* executeNMRequest(void* arg)
 					exit(EXIT_FAILURE);
 				}
 				// recieve the response from the destination server
-				 char * buffer7[1024];
-				 totalRead = 0;
+				char buffer7[1024];
+				totalRead = 0;
 				if(recv(sock, buffer7, sizeof(buffer7), 0) < 0)
 				{
 					perror("recv failed");
@@ -842,111 +968,145 @@ void* executeNMRequest(void* arg)
 					exit(EXIT_FAILURE);
 				}
 				printf("Server reply: %s\n", buffer7);
+				if(strncmp(buffer7, "1", strlen("1")) == 0)
+				{
+					printf("Error in copying the directory\n");
+					memset(response, '\0', sizeof(response));
+					strcpy(response, "7");
+					send(NMSocket, response, strlen(response), 0);
+					close(sock);
+					return NULL;
+				}
+			}
+		}
+		else
+		{
+			// printf("Command: %s %s %s %s\n", destination_ip, destination_port, path, path);
+			// check if the file is opened or not
+			if(fptr1 == NULL)
+			{
+				printf("Cannot open file %s \n", path);
 
+				// send the error to the nm
+				char response[1024];
+				memset(response, '\0', sizeof(response));
+				strcpy(response, "8");
+				send(NMSocket, response, strlen(response), 0);
+				return NULL;
 			}
 
-
-
-		}
-
-		// printf("Command: %s %s %s %s\n", destination_ip, destination_port, path, path);
-		// check if the file is opened or not
-		if(fptr1 == NULL)
-		{
-			printf("Cannot open file %s \n", path);
-			exit(0);
-		}
-
-		// copy the contents of the file in buffer to send it to the destination server
-		char buffer[1024];
-		int nread = fread(buffer, 1, sizeof(buffer), fptr1);
-		printf("%s is the buffer\n", buffer);
-		// close the file
-		fclose(fptr1);
-		// now we need to send the file to the destination server but first we need to connect to the destination server and send the file path
-		// and then we need to send the file to the destination server
-		// create a socket
-		int sock;
-		struct sockaddr_in serverAddr;
-		// create a socket
-		sock = socket(AF_INET, SOCK_STREAM, 0);
-		if(sock < 0)
-		{
-			perror("Could not create socket");
-			return NULL;
-		}
-		// set the server address
-		serverAddr.sin_addr.s_addr = inet_addr(destination_ip);
-		serverAddr.sin_family = AF_INET;
-		serverAddr.sin_port = htons(d_port);
-		// connect to the destination server
-		if(connect(sock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0)
-		{
-			perror("Connect failed. Error");
-			return NULL;
-		}
-		if(send(sock, "0", 1, 0) < 0)
-		{
-			perror("Send failed");
-			close(sock);
-			exit(EXIT_FAILURE);
-		}
-		// recieve the response from the destination server
-		char buffer2[1024];
-		memset(buffer2, '\0', sizeof(buffer2));
-		int totalRead = 0;
-		if(recv(sock, buffer2, sizeof(buffer2), 0) < 0)
-		{
-			perror("recv failed");
-			close(sock);
-			exit(EXIT_FAILURE);
-		}
-		printf("Server reply: %s\n", buffer2);
-		// send the file path to the destination server
-		if(send(sock, path2, strlen(path2), 0) < 0)
-		{
-			perror("Send failed");
-			close(sock);
-			exit(EXIT_FAILURE);
-		}
-		// recieve the response from the destination server
-		memset(buffer2, '\0', sizeof(buffer2));
-		totalRead = 0;
-		if(recv(sock, buffer2, sizeof(buffer2), 0) < 0)
-		{
-			perror("recv failed");
-			close(sock);
-			exit(EXIT_FAILURE);
-		}
-		printf("Server reply: %s\n", buffer2);
-		if(strncmp(buffer2, "OK", strlen("OK")) == 0)
-		{
-			// send the file to the destination server
-			printf("Sending file to the destination server\n");
-			printf("GOT OK\n");
-			if(send(sock, buffer, nread, 0) < 0)
+			// copy the contents of the file in buffer to send it to the destination server
+			char buffer[1024];
+			int nread = fread(buffer, 1, sizeof(buffer), fptr1);
+			// printf("%s is the buffer\n", buffer);
+			// close the file
+			fclose(fptr1);
+			// now we need to send the file to the destination server but first we need to connect to the destination server and send the file path
+			// and then we need to send the file to the destination server
+			// create a socket
+			int sock;
+			struct sockaddr_in serverAddr;
+			// create a socket
+			sock = socket(AF_INET, SOCK_STREAM, 0);
+			if(sock < 0)
+			{
+				perror("Could not create socket");
+				return NULL;
+			}
+			// set the server address
+			serverAddr.sin_addr.s_addr = inet_addr(destination_ip);
+			serverAddr.sin_family = AF_INET;
+			serverAddr.sin_port = htons(d_port);
+			// connect to the destination server
+			if(connect(sock, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0)
+			{
+				send(NMSocket, "2", strlen("2"), 0);
+				perror("Connect failed. Error");
+				return NULL;
+			}
+			if(send(sock, "0", 1, 0) < 0)
 			{
 				perror("Send failed");
 				close(sock);
 				exit(EXIT_FAILURE);
 			}
 			// recieve the response from the destination server
-			char buffer3[1024];
+			char buffer2[1024];
+			memset(buffer2, '\0', sizeof(buffer2));
 			int totalRead = 0;
-			if(recv(sock, buffer3, sizeof(buffer3), 0) < 0)
+			if(recv(sock, buffer2, sizeof(buffer2), 0) < 0)
 			{
 				perror("recv failed");
 				close(sock);
 				exit(EXIT_FAILURE);
 			}
-			printf("Server reply: %s\n", buffer3);
+			// printf("Server reply: %s\n", buffer2);
+			// send the file path to the destination server
+			if(send(sock, path2, strlen(path2), 0) < 0)
+			{
+				perror("Send failed");
+				close(sock);
+				exit(EXIT_FAILURE);
+			}
+			// recieve the response from the destination server
+			memset(buffer2, '\0', sizeof(buffer2));
+			totalRead = 0;
+			if(recv(sock, buffer2, sizeof(buffer2), 0) < 0)
+			{
+				perror("recv failed");
+				close(sock);
+				exit(EXIT_FAILURE);
+			}
+			// printf("Server reply: %s\n", buffer2);
+			if(strncmp(buffer2, "OK", strlen("OK")) == 0)
+			{
+				// send the file to the destination server
+				printf("Sending file to the destination server\n");
+				// printf("GOT OK\n");
+				if(send(sock, buffer, nread, 0) < 0)
+				{
+					perror("Send failed");
+					close(sock);
+					exit(EXIT_FAILURE);
+				}
+				// recieve the response from the destination server
+				char buffer3[1024];
+				int totalRead = 0;
+				if(recv(sock, buffer3, sizeof(buffer3), 0) < 0)
+				{
+					perror("recv failed");
+					close(sock);
+					exit(EXIT_FAILURE);
+				}
+				printf("Server reply: %s\n", buffer3);
+			}
+			else
+			{
+				char response[1024];
+				printf("Error in copying the file\n");
+				memset(response, '\0', sizeof(response));
+				strcpy(response, "6");
+
+				printf("Server reply: %s\n", buffer2);
+				send(NMSocket, response, strlen(response), 0);
+				close(sock);
+				return NULL;
+
+			}
 		}
-		else
+
+		// send the ack to nm
+		printf("Sending ack to nm\n");
+		char response[1024];
+		memset(response, '\0', sizeof(response));
+		strcpy(response, "11");
+		if(send(NMSocket, response, strlen(response), 0) < 0)
 		{
-			printf("Server reply: %s\n", buffer2);
+			perror("Send failed");
+			close(NMSocket);
+			exit(EXIT_FAILURE);
 		}
 	}
-	// Add more conditions as needed
 	free(threadArg); // Free the allocated memory
 	close(NMSocket); // Close the connection
 	return NULL;
@@ -957,14 +1117,14 @@ void* executeSSRequest(void* arg)
 	ThreadArg* threadArg = (ThreadArg*)arg;
 	char* request = threadArg->request;
 	// Similar structure to executeClientRequest
-	if(strncmp("0", request,1)==0)
+	if(strncmp("0", request, 1) == 0)
 	{
 		printf("GOT 0\n");
 
 		//send ok to the source server
 		char response11[1024];
 		memset(response11, '\0', sizeof(response11));
-		strcpy(response11, "OK I know its a file");
+		strcpy(response11, "FILE");
 		if(send(threadArg->socket, response11, strlen(response11), 0) < 0)
 		{
 			perror("Send failed");
@@ -1013,18 +1173,20 @@ void* executeSSRequest(void* arg)
 		int nread = fwrite(buffer, 1, size_of_buffer, fptr1);
 		// close the file
 		fclose(fptr1);
+
+		send(threadArg->socket, "OK", strlen("OK"), 0);
 	}
-	else if (strncmp("1" , request , 1)==0)
+	else if(strncmp("1", request, 1) == 0)
 	{
 		// now we need to send the ok to the source server
 		char response[1024];
 		memset(response, '\0', sizeof(response));
-		strcpy(response, "OK We know its a directory");
+		strcpy(response, "FOLDER");
 		if(send(threadArg->socket, response, strlen(response), 0) < 0)
 		{
 			perror("Send failed");
 			close(threadArg->socket);
-			exit(EXIT_FAILURE);
+			return NULL;
 		}
 		// now we need to recieve the number of directories from the source server
 		char buffer[1024];
@@ -1048,8 +1210,8 @@ void* executeSSRequest(void* arg)
 			close(threadArg->socket);
 			exit(EXIT_FAILURE);
 		}
-		// now we need to recieve the directories from the source server in a for loop 
-		for ( int dir_ = 0 ; dir_ < number_of_directories ; dir_++)
+		// now we need to recieve the directories from the source server in a for loop
+		for(int dir_ = 0; dir_ < number_of_directories; dir_++)
 		{
 			char buffer2[1024];
 			memset(buffer2, '\0', sizeof(buffer2));
@@ -1062,6 +1224,20 @@ void* executeSSRequest(void* arg)
 			}
 			printf("We got directory %s\n", buffer2);
 			// now we need to send the ok to the source server
+			if(mkdir(buffer2, 0777) == -1)
+			{ // Attempt to create a directory
+				perror("Error creating directory");
+				memset(response2, '\0', sizeof(response2));
+				strcpy(response2, "1");
+				if(send(threadArg->socket, response2, strlen(response2), 0) < 0)
+				{
+					perror("Send failed");
+					close(threadArg->socket);
+					exit(EXIT_FAILURE);
+				}
+				close(threadArg->socket);
+				return NULL;
+			}
 			char response3[1024];
 			memset(response3, '\0', sizeof(response3));
 			strcpy(response3, "OK");
@@ -1072,11 +1248,6 @@ void* executeSSRequest(void* arg)
 				exit(EXIT_FAILURE);
 			}
 			// now we need to create the directory in the destination server
-			if(mkdir(buffer2, 0777) == -1)
-			{ // Attempt to create a directory
-				perror("Error creating directory");
-				exit(EXIT_FAILURE);
-			}
 		}
 		// now we need to recieve the number of files from the source server
 		char buffer3[1024];
@@ -1101,11 +1272,11 @@ void* executeSSRequest(void* arg)
 			exit(EXIT_FAILURE);
 		}
 		// now we need to recieve the files from the source server in a for loop
-		for( int _file = 0 ; _file < number_of_files ; _file++)
+		for(int _file = 0; _file < number_of_files; _file++)
 		{
 			char buffer4[1024];
 			memset(buffer4, '\0', sizeof(buffer4));
-			 totalRead = 0;
+			totalRead = 0;
 			if(recv(threadArg->socket, buffer4, sizeof(buffer4), 0) < 0)
 			{
 				perror("recv failed");
@@ -1125,7 +1296,7 @@ void* executeSSRequest(void* arg)
 			}
 			// now we need to recieve the file from the source server
 			char buffer5[1024];
-			 totalRead = 0;
+			totalRead = 0;
 			if(recv(threadArg->socket, buffer5, sizeof(buffer5), 0) < 0)
 			{
 				perror("recv failed");
@@ -1138,6 +1309,15 @@ void* executeSSRequest(void* arg)
 			if(fptr1 == NULL)
 			{
 				printf("Cannot open file %s \n", buffer4);
+				memset(response5, '\0', sizeof(response5));
+				strcpy(response5, "1");
+				if(send(threadArg->socket, response5, strlen(response5), 0) < 0)
+				{
+					perror("Send failed");
+					close(threadArg->socket);
+					exit(EXIT_FAILURE);
+				}
+				close(threadArg->socket);
 				exit(0);
 			}
 			// now we need to write the contents of the buffer to the file
@@ -1149,7 +1329,7 @@ void* executeSSRequest(void* arg)
 			// now we need to send the ok to the source server
 			char response6[1024];
 			memset(response6, '\0', sizeof(response6));
-			strcpy(response6, "OK");
+			strcpy(response6, "0");
 			if(send(threadArg->socket, response6, strlen(response6), 0) < 0)
 			{
 				perror("Send failed");
@@ -1357,7 +1537,6 @@ void* handleStorageServerConnections(void* args)
 		{
 			perror("Failed to create thread for client request");
 		}
-
 	}
 
 	return NULL;

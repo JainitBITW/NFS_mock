@@ -282,6 +282,51 @@ void clientCopy(int clientSocket)
     // send request to Naming Server
     // strcpy(request, "COPY ./src/hello ./src/jainit\n");
     send(clientSocket, request, strlen(request), 0);
+
+    char response[100];
+    recv(clientSocket, response, sizeof(response), 0);
+
+    int index_case;
+    index_case = atoi(response);
+    switch (index_case)
+    {
+    case 2:
+        printf("Error connecting to destination storage server\n");
+        break;
+    
+    case 3:
+        printf("Error in Identifying FOLDER \n");
+        break;
+    
+    case 4:
+        printf("Error in copying the directory \n");
+        break;
+    case 5:
+        printf("folder conflict \n");
+        break;
+
+    case 6:
+        printf("Error in copying the file \n");
+        break;
+    case 13: 
+        printf("Error in opening the file in directory \n");
+        break;
+    case 7:
+        printf("Error in copying the file\n");
+        break;
+
+    case 8:
+        printf("Cannot open file\n");
+        break;
+    case 11:
+        printf("Successfully done\n");
+        break;
+    default:
+        break;
+    }
+
+    
+
 }
 
 // ls function to send request to naming server to list all accessible paths
