@@ -15,9 +15,9 @@
 #define SSIPADDRESS "127.0.0.2"
 
 // Incomming Connection
-#define CLIENT_PORT 4000
-#define NM_PORT 5000
-#define SS_PORT 6000
+// #define CLIENT_PORT 4000
+// #define NM_PORT 5000
+// #define SS_PORT 6000
 #define MAX_DIRECTORIES 1000
 #define MAX_PATH_LENGTH 1000
 #define MAX_FILES 1000
@@ -25,13 +25,13 @@
 
 // OutGoing Connection
 #define NAMING_SERVER_PORT 8000
-#define MOUNT "./src"
+#define MOUNT "."
 
 // char NMIPADDRESS[16]; // Default value
 // char SSIPADDRESS[16]; // For storing the IP address
-// int CLIENT_PORT;
-// int NM_PORT;
-// int SS_PORT;
+int CLIENT_PORT;
+int NM_PORT;
+int SS_PORT;
 
 // // OutGoing Connection
 // int NAMING_SERVER_PORT = 8000;
@@ -54,6 +54,19 @@ typedef struct StorageServer
 } StorageServer;
 
 
+// LRU Caching
+typedef struct LRUCache {
+    StorageServer data;
+	char keyPath[100];
+    struct LRUCache *prev, *next;
+} LRUCache;
+
+
+LRUCache *head = NULL;
+int cacheSize = 0;
+int cacheCapacity = 0;
+
+
 typedef struct
 {
 	char request[1024]; // Adjust size as needed
@@ -66,11 +79,74 @@ void handleClientRequest();
 FileSystem fileSystem;
 StorageServer ss;
 
+void initializeLRUCache(int capacity) {
+    head = NULL;
+    cacheSize = 0;
+    cacheCapacity = capacity;
+}
 
-// Global Array for List of Paths where Write is performed
-char writePaths[100][100];
-int writePathsCount = 0;
-pthread_mutex_t writePathsMutex = PTHREAD_MUTEX_INITIALIZER;
+int accessStorageServerCache(char* keyPath) {
+    LRUCache* temp = head;
+    LRUCache* prevNode = NULL;
+
+    // Search for the server in the cache
+    while (temp != NULL && strcmp(temp->keyPath, keyPath) != 0) {
+        prevNode = temp;
+        temp = temp->next;
+    }
+
+    if (temp == NULL) { // Server not found in cache
+		return 0;
+    }
+	if (prevNode != NULL) {
+		prevNode->next = temp->next;
+		if (temp->next != NULL) {
+			temp->next->prev = prevNode;
+		}
+		temp->next = head;
+		temp->prev = NULL;
+		head->prev = temp;
+		head = temp;
+	}
+	return 1;
+}
+
+void addServertoCache(char* keyPath, StorageServer server) {
+	LRUCache* newNode = (LRUCache*)malloc(sizeof(LRUCache));
+	newNode->data = server;
+	strcpy(newNode->keyPath, keyPath);
+	newNode->next = head;
+	newNode->prev = NULL;
+
+	if (head != NULL) {
+	    head->prev = newNode;
+	}
+	head = newNode;
+
+	if (cacheSize == cacheCapacity) { // Remove least recently used server
+	    LRUCache* toRemove = head;
+	    while (toRemove->next != NULL) {
+	        toRemove = toRemove->next;
+	    }
+	    if (toRemove->prev != NULL) {
+	        toRemove->prev->next = NULL;
+	    }
+	    free(toRemove);
+	} else {
+	    cacheSize++;
+	}
+}
+
+void freeLRUCache() {
+    LRUCache* current = head;
+    while (current != NULL) {
+        LRUCache* next = current->next;
+        free(current);
+        current = next;
+    }
+    head = NULL;
+    cacheSize = 0;
+}
 
 
 int isDirectory(const char* path)
@@ -549,31 +625,6 @@ void* executeClientRequest(void* arg)
 		char content[4096]; // Adjust size as needed
 		sscanf(request, "%*s %*s %[^\t\n]", content); // Reads the content part of the request
 
-		// Check if the file is not present in the writePath 
-		while(1) {
-			// Lock the mutex
-			pthread_mutex_lock(&writePathsMutex);
-			int isPresent = 0;
-			for(int i = 0; i < writePathsCount; i++)
-			{
-				if(strcmp(writePaths[i], path) == 0)
-				{
-					isPresent = 1;
-					break;
-				}
-			}
-			if(isPresent == 0)
-			{
-				strcpy(writePaths[writePathsCount], path);
-				writePathsCount++;
-				pthread_mutex_unlock(&writePathsMutex);
-				break;
-			}
-			// Unlock the mutex
-			pthread_mutex_unlock(&writePathsMutex);
-			usleep(1000);
-		}
-
 		FILE* file = fopen(path, "w");
 		if(file == NULL)
 		{
@@ -596,24 +647,6 @@ void* executeClientRequest(void* arg)
 			}
 			fclose(file);
 		}
-
-		// Removing the path from writePath Array
-		// Add Mutex Lock
-		pthread_mutex_lock(&writePathsMutex);
-		for(int i = 0; i < writePathsCount; i++)
-		{
-			if(strcmp(writePaths[i], path) == 0)
-			{
-				for(int j = i; j < writePathsCount - 1; j++)
-				{
-					strcpy(writePaths[j], writePaths[j + 1]);
-				}
-				writePathsCount--;
-				break;
-			}
-		}
-		// Unlock the mutex
-		pthread_mutex_unlock(&writePathsMutex);
 	}
 	else
 	{
@@ -765,30 +798,6 @@ void* executeNMRequest(void* arg)
 	}
 	else if(strcmp(command, "DELETE") == 0)
 	{
-		// Check if the file is not present in the writePath 
-		while(1) {
-			// Lock the mutex
-			pthread_mutex_lock(&writePathsMutex);
-			int isPresent = 0;
-			for(int i = 0; i < writePathsCount; i++)
-			{
-				if(strcmp(writePaths[i], path) == 0)
-				{
-					isPresent = 1;
-					break;
-				}
-			}
-			if(isPresent == 0)
-			{
-				strcpy(writePaths[writePathsCount], path);
-				writePathsCount++;
-				pthread_mutex_unlock(&writePathsMutex);
-				break;
-			}
-			// Unlock the mutex
-			pthread_mutex_unlock(&writePathsMutex);
-			usleep(1000);
-		}
 		struct stat path_stat;
 		stat(path, &path_stat);
 		char response[1024];
@@ -811,23 +820,6 @@ void* executeNMRequest(void* arg)
 				strcpy(response, "4");
 			}
 		}
-		// Removing the path from writePath Array
-		// Add Mutex Lock
-		pthread_mutex_lock(&writePathsMutex);
-		for(int i = 0; i < writePathsCount; i++)
-		{
-			if(strcmp(writePaths[i], path) == 0)
-			{
-				for(int j = i; j < writePathsCount - 1; j++)
-				{
-					strcpy(writePaths[j], writePaths[j + 1]);
-				}
-				writePathsCount--;
-				break;
-			}
-		}
-		// Unlock the mutex
-		pthread_mutex_unlock(&writePathsMutex);
 		send(NMSocket, response, strlen(response), 0);
 	}
 	else if(strncmp(command, "COPY", strlen("COPY")) == 0)
@@ -1649,6 +1641,38 @@ void* handleStorageServerConnections(void* args)
 	return NULL;
 }
 
+int getAvailablePort() {
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        perror("Cannot open socket");
+        exit(EXIT_FAILURE);
+    }
+
+    struct sockaddr_in serv_addr;
+    memset(&serv_addr, 0, sizeof(serv_addr));
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serv_addr.sin_port = htons(0); // bind to any available port
+
+    if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("Bind failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    socklen_t len = sizeof(serv_addr);
+    if (getsockname(sockfd, (struct sockaddr *)&serv_addr, &len) < 0) {
+        perror("getsockname failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    int port = ntohs(serv_addr.sin_port);
+    close(sockfd);
+    return port;
+}
+
 // The main function could set up the storage server.
 int main(int argc, char* argv[])
 {
@@ -1678,6 +1702,13 @@ int main(int argc, char* argv[])
 	// CLIENT_PORT = atoi(argv[3]);
 	// NM_PORT = atoi(argv[4]);
 	// SS_PORT = atoi(argv[5]);
+
+
+	// Set 3 random ports that are open
+	CLIENT_PORT = getAvailablePort();
+	NM_PORT = getAvailablePort();
+	SS_PORT = getAvailablePort();
+
 
 	printf("Storage Server\n");
 	initializeStorageServer();
