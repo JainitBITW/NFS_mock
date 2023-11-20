@@ -65,6 +65,22 @@ pthread_mutex_t storageServerMutex = PTHREAD_MUTEX_INITIALIZER;
 
 void update_list_of_accessiblepaths(int index)
 {
+	// Removing Hashes for index SS
+	PathToServerMap* current_server, *tmp;
+	HASH_ITER(hh, serversByPath, current_server, tmp)
+	{
+		// if current_server->path is present in the list of storageServers[index].accessiblePaths then remove it
+		for(int i = 0; i < storageServers[index].numPaths; i++)
+		{
+			if(strcmp(current_server->path, storageServers[index].accessiblePaths[i]) == 0)
+			{
+				HASH_DEL(serversByPath, current_server);
+				free(current_server);
+			}
+		}
+	}
+
+
 	// connect the storage server and get the list of accessible paths
 	int sock;
 	struct sockaddr_in server;
@@ -133,10 +149,22 @@ void update_list_of_accessiblepaths(int index)
 
 			return;
 		}
-
+		
 		strcpy(storageServers[index].accessiblePaths[i], server_reply);
 		char return_message[1000];
 		strcpy(return_message, "OK");
+
+		// Adding it in the Hash
+		PathToServerMap* s = malloc(sizeof(PathToServerMap));
+		strcpy(s->path, server_reply);
+
+		// Copy the newServer data into the hash table entry
+		s->server = storageServers[index]; // Direct copy of the server
+
+		HASH_ADD_STR(serversByPath, path, s);
+		// Adding Hash Ended
+
+		
 		if(send(sock, return_message, strlen(return_message), 0) < 0)
 		{
 			puts("Send failed");
