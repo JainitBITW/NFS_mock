@@ -47,7 +47,91 @@ typedef struct PathToServerMap
 	UT_hash_handle hh;	  // Makes this structure hashable
 } PathToServerMap;
 
-PathToServerMap *serversByPath = NULL;
+PathToServerMap* serversByPath = NULL;
+
+
+// LRU Caching
+typedef struct LRUCache {
+    StorageServer data;
+	char keyPath[100];
+    struct LRUCache *prev, *next;
+} LRUCache;
+
+
+LRUCache *head = NULL;
+int cacheSize = 0;
+int cacheCapacity = 0;
+
+
+void initializeLRUCache(int capacity) {
+    head = NULL;
+    cacheSize = 0;
+    cacheCapacity = capacity;
+}
+
+int accessStorageServerCache(char* keyPath) {
+    LRUCache* temp = head;
+    LRUCache* prevNode = NULL;
+
+    // Search for the server in the cache
+    while (temp != NULL && strcmp(temp->keyPath, keyPath) != 0) {
+        prevNode = temp;
+        temp = temp->next;
+    }
+
+    if (temp == NULL) { // Server not found in cache
+		return 0;
+    }
+	if (prevNode != NULL) {
+		prevNode->next = temp->next;
+		if (temp->next != NULL) {
+			temp->next->prev = prevNode;
+		}
+		temp->next = head;
+		temp->prev = NULL;
+		head->prev = temp;
+		head = temp;
+	}
+	return 1;
+}
+
+void addServertoCache(char* keyPath, StorageServer server) {
+	LRUCache* newNode = (LRUCache*)malloc(sizeof(LRUCache));
+	newNode->data = server;
+	strcpy(newNode->keyPath, keyPath);
+	newNode->next = head;
+	newNode->prev = NULL;
+
+	if (head != NULL) {
+	    head->prev = newNode;
+	}
+	head = newNode;
+
+	if (cacheSize == cacheCapacity) { // Remove least recently used server
+	    LRUCache* toRemove = head;
+	    while (toRemove->next != NULL) {
+	        toRemove = toRemove->next;
+	    }
+	    if (toRemove->prev != NULL) {
+	        toRemove->prev->next = NULL;
+	    }
+	    free(toRemove);
+	} else {
+	    cacheSize++;
+	}
+}
+
+void freeLRUCache() {
+    LRUCache* current = head;
+    while (current != NULL) {
+        LRUCache* next = current->next;
+        free(current);
+        current = next;
+    }
+    head = NULL;
+    cacheSize = 0;
+}
+
 
 void loggingfunction()
 {
@@ -203,7 +287,8 @@ void update_list_of_accessiblepaths(int index)
 		HASH_ADD_STR(serversByPath, path, s);
 		// Adding Hash Ended
 
-		if (send(sock, return_message, strlen(return_message), 0) < 0)
+
+		if(send(sock, return_message, strlen(return_message), 0) < 0)
 		{
 			puts("Send failed");
 			return;
@@ -423,8 +508,19 @@ void get_path_ss(char *path, PathToServerMap *s, int *foundFlag)
 {
 	char *ip_Address_ss;
 	int port_ss;
-	HASH_FIND_STR(serversByPath, path, s);
-	if (s != NULL)
+	// Checking LRU Cache
+	if (accessStorageServerCache(path)) {
+		// Malloc ServerByPath
+		s = malloc(sizeof(PathToServerMap));
+		// Set as head->data
+		s->server = head->data;
+		strcpy(s->path, path);
+		foundFlag = 1;
+	}
+	else {
+		HASH_FIND_STR(serversByPath, path, s);
+	}
+	if(s != NULL)
 	{
 		char t[1024];
 		strcpy(ip_Address_ss, s->server.ipAddress);
@@ -442,6 +538,9 @@ void get_path_ss(char *path, PathToServerMap *s, int *foundFlag)
 		snprintf(t, sizeof(t), "Port: %d", port_ss);
 		logmessage = t;
 		loggingfunction();
+
+		// Adding server to cache
+		addServertoCache(path, s->server);
 	}
 }
 char *getDirectoryPath(const char *path)
@@ -568,9 +667,22 @@ void *handleClientInput(void *socketDesc)
 				char ip_Address_ss[16];
 				int port_ss;
 
-				PathToServerMap *s;
-				HASH_FIND_STR(serversByPath, path, s);
-				if (s != NULL)
+				PathToServerMap* s;
+
+				// Checking LRU Cache
+				if (accessStorageServerCache(path)) {
+					// Malloc ServerByPath
+					s = (PathToServerMap *)malloc(sizeof(PathToServerMap));
+					// Set as head->data
+					s->server = head->data;
+					strcpy(s->path, path);
+					foundFlag = 1;
+				}
+				else {
+					HASH_FIND_STR(serversByPath, path, s);
+				}
+
+				if(s != NULL)
 				{
 					strcpy(ip_Address_ss, s->server.ipAddress);
 					port_ss = s->server.clientPort;
@@ -587,6 +699,9 @@ void *handleClientInput(void *socketDesc)
 					snprintf(t, sizeof(t), "Port: %d", port_ss);
 					logmessage = t;
 					loggingfunction();
+
+					// Adding server to cache
+					addServertoCache(path, s->server);
 				}
 
 				if (foundFlag == 1)
@@ -665,7 +780,21 @@ void *handleClientInput(void *socketDesc)
 				logmessage = t;
 				loggingfunction();
 				PathToServerMap *s;
-				HASH_FIND_STR(serversByPath, path_copy, s);
+
+				// Checking LRU Cache
+				if (accessStorageServerCache(path)) {
+					// Malloc ServerByPath
+					s = malloc(sizeof(PathToServerMap));
+					// Set as head->data
+					s->server = head->data;
+					strcpy(s->path, path);
+					foundFlag = 1;
+				}
+				else {
+					HASH_FIND_STR(serversByPath, path, s);
+				}
+
+
 				if (s != NULL)
 				{
 					strcpy(ip_Address_ss, s->server.ipAddress);
@@ -781,9 +910,22 @@ void *handleClientInput(void *socketDesc)
 				int foundFlag = 0;
 				char ip_Address_ss[16];
 				int port_ss;
-				PathToServerMap *s;
-				HASH_FIND_STR(serversByPath, path, s);
-				if (s != NULL)
+				PathToServerMap* s;
+
+				// Checking LRU Cache
+				if (accessStorageServerCache(path)) {
+					// Malloc ServerByPath
+					s = malloc(sizeof(PathToServerMap));
+					// Set as head->data
+					s->server = head->data;
+					strcpy(s->path, path);
+					foundFlag = 1;
+				}
+				else {
+					HASH_FIND_STR(serversByPath, path, s);
+				}
+
+				if(s != NULL)
 				{
 					strcpy(ip_Address_ss, s->server.ipAddress);
 					port_ss = s->server.nmPort;
