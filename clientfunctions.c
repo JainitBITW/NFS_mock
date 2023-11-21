@@ -6,7 +6,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <ctype.h>
-
+#include <time.h>
 #define NAMING_SERVER_PORT 8001
 #define IP_ADDRESS "127.0.0.1"
 
@@ -380,10 +380,11 @@ void clientCopy(int clientSocket)
 
     int index_case;
     index_case = atoi(response);
+    printf("index_case = %d\n", index_case);
     switch (index_case)
     {
     case 2:
-        printf("Error connecting to destination storage server\n");
+        printf("No such folder in destination\n");
         break;
 
     case 3:

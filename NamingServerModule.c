@@ -1054,6 +1054,18 @@ void extractPathThird(const char* input, char* path, size_t pathSize)
 // 	strncpy(path, secondSpace + 1, pathLength);
 // 	path[pathLength] = '\0'; // Null-terminate the string
 // }
+void getFileName(const char *path, char *filename) {
+    // Find the last occurrence of the directory separator (usually '/')
+    const char *lastSlash = strrchr(path, '/');
+    
+    // If the last slash is found, extract the filename from the position after the slash
+    if (lastSlash != NULL) {
+        strcpy(filename, lastSlash + 1);
+    } else {
+        // If no slash is found, the entire path is the filename
+        strcpy(filename, path);
+    }
+}
 
 void *handleClientInput(void *socketDesc);
 
@@ -1505,67 +1517,67 @@ void* handleClientInput(void* socketDesc)
 				{
 
 					// we again create 3 threads to send the request to all the 3 storage servers
-					if(storageServerCount >= 3)
-					{
-						ThreadArgs* args1 = malloc(sizeof(ThreadArgs));
-						args1->ipAddress = storageServers[0].ipAddress;
-						args1->port = storageServers[0].nmPort;
-						sprintf(args1->buffer, "DELETE %s", path);
-						args1->is_original = 1;
-						args1->clientsock = clientsock;
-						args1->storage_server_index = 0;
-						args1->task = 2;
-						pthread_t thread1;
-						pthread_create(&thread1, NULL, send_request_async, (void*)args1);
-						pthread_detach(thread1);
+					// if(storageServerCount >= 3)
+					// {
+					// 	ThreadArgs* args1 = malloc(sizeof(ThreadArgs));
+					// 	args1->ipAddress = storageServers[0].ipAddress;
+					// 	args1->port = storageServers[0].nmPort;
+					// 	sprintf(args1->buffer, "DELETE %s", path);
+					// 	args1->is_original = 1;
+					// 	args1->clientsock = clientsock;
+					// 	args1->storage_server_index = 0;
+					// 	args1->task = 2;
+					// 	pthread_t thread1;
+					// 	pthread_create(&thread1, NULL, send_request_async, (void*)args1);
+					// 	pthread_detach(thread1);
 
-						// delete the backups
-						char path1[1024];
-						memset(path1, '\0', sizeof(path1));
-						char path2[1024];
-						memset(path2, '\0', sizeof(path2));
-						char* without_prefix = remove_prefix(path, ".");
-						printf("Without prefix: %s\n", without_prefix);
-						sprintf(path1, "./Backup0%s", without_prefix);
-						sprintf(path2, "./Backup1%s", without_prefix);
-						printf("Path1: %s\n", path1);
-						printf("Path2: %s\n", path2);
+					// 	// delete the backups
+					// 	char path1[1024];
+					// 	memset(path1, '\0', sizeof(path1));
+					// 	char path2[1024];
+					// 	memset(path2, '\0', sizeof(path2));
+					// 	char* without_prefix = remove_prefix(path, ".");
+					// 	printf("Without prefix: %s\n", without_prefix);
+					// 	sprintf(path1, "./Backup0%s", without_prefix);
+					// 	sprintf(path2, "./Backup1%s", without_prefix);
+					// 	printf("Path1: %s\n", path1);
+					// 	printf("Path2: %s\n", path2);
 
-						//now we create 3 threads to send the request to all the 3 storage servers
-						ThreadArgs* args2 = malloc(sizeof(ThreadArgs));
-						args2->ipAddress = storageServers[1].ipAddress;
-						args2->port = storageServers[1].nmPort;
-						sprintf(args2->buffer, "DELETE %s", path1);
-						args2->is_original = 0;
-						args2->storage_server_index = 1;
-						args2->task = 2;
-						pthread_t thread2;
-						pthread_create(&thread2, NULL, send_request_async, (void*)args2);
-						pthread_detach(thread2);
+					// 	//now we create 3 threads to send the request to all the 3 storage servers
+					// 	ThreadArgs* args2 = malloc(sizeof(ThreadArgs));
+					// 	args2->ipAddress = storageServers[1].ipAddress;
+					// 	args2->port = storageServers[1].nmPort;
+					// 	sprintf(args2->buffer, "DELETE %s", path1);
+					// 	args2->is_original = 0;
+					// 	args2->storage_server_index = 1;
+					// 	args2->task = 2;
+					// 	pthread_t thread2;
+					// 	pthread_create(&thread2, NULL, send_request_async, (void*)args2);
+					// 	pthread_detach(thread2);
 
-						ThreadArgs* args3 = malloc(sizeof(ThreadArgs));
-						args3->ipAddress = storageServers[2].ipAddress;
-						args3->port = storageServers[2].nmPort;
+					// 	ThreadArgs* args3 = malloc(sizeof(ThreadArgs));
+					// 	args3->ipAddress = storageServers[2].ipAddress;
+					// 	args3->port = storageServers[2].nmPort;
 
-						sprintf(args3->buffer, "DELETE %s", path2);
-						args3->is_original = 0;
-						args3->storage_server_index = 2;
-						args3->task = 2;
-						pthread_t thread3;
-						pthread_create(&thread3, NULL, send_request_async, (void*)args3);
-						pthread_detach(thread3);
+					// 	sprintf(args3->buffer, "DELETE %s", path2);
+					// 	args3->is_original = 0;
+					// 	args3->storage_server_index = 2;
+					// 	args3->task = 2;
+					// 	pthread_t thread3;
+					// 	pthread_create(&thread3, NULL, send_request_async, (void*)args3);
+					// 	pthread_detach(thread3);
 
-						//now we wait for the 3 threads to finish
-						pthread_join(thread1, NULL);
-						pthread_join(thread2, NULL);
-						pthread_join(thread3, NULL);
+					// 	//now we wait for the 3 threads to finish
+					// 	pthread_join(thread1, NULL);
+					// 	pthread_join(thread2, NULL);
+					// 	pthread_join(thread3, NULL);
 
-						update_list_of_accessiblepaths(0);
-						update_list_of_accessiblepaths(1);
-						update_list_of_accessiblepaths(2);
-					}
-					else
-					{
+					// 	update_list_of_accessiblepaths(0);
+					// 	update_list_of_accessiblepaths(1);
+					// 	update_list_of_accessiblepaths(2);
+					// }
+					// else
+					// {
 						// connect to the storage server port and ip address
 						int storageserversocket;
 						struct sockaddr_in storageserveraddress;
@@ -1624,7 +1636,7 @@ void* handleClientInput(void* socketDesc)
 						}
 						update_list_of_accessiblepaths(storage_server_index);
 						
-					}
+					// }
 				}
 				else if(foundFlag == 0)
 				{
@@ -1687,6 +1699,23 @@ void* handleClientInput(void* socketDesc)
 					logmessage = concatenatedstring;
 					loggingfunction();
 				}
+				if(s==NULL)
+				{
+					printf("File not found\n");
+					sprintf(concatenatedstring, "File not found");
+					logmessage = concatenatedstring;
+					loggingfunction();
+					char reply[1024];
+					strcpy(reply, "8");
+					if(send(sock, reply, strlen(reply), 0) < 0)
+					{
+						puts("Send failed");
+						logmessage = "Send failed";
+						loggingfunction();
+						return NULL;
+					}
+					continue;
+				}
 
 				// first we find to which storage server the path Third belongs to
 				PathToServerMap* s1;
@@ -1711,7 +1740,34 @@ void* handleClientInput(void* socketDesc)
 					loggingfunction();
 					
 				}			
-
+				if( s1 == NULL)
+				{
+					printf("File not found\n");
+					sprintf(concatenatedstring, "File not found");
+					logmessage = concatenatedstring;
+					loggingfunction();
+					char reply[1024];
+					strcpy(reply, "2");
+					if(send(sock, reply, strlen(reply), 0) < 0)
+					{
+						puts("Send failed");
+						logmessage = "Send failed";
+						loggingfunction();
+						return NULL;
+					}
+					continue;
+				}
+				int dest_ss_index;
+				
+				for(int i = 0; i < storageServerCount; i++)
+				{
+					if(strcmp(storageServers[i].ipAddress, ip_Address_ss2) == 0 &&
+					   storageServers[i].ssPort_recv == port_ss2)
+					{
+						dest_ss_index = i;
+						break;
+					}
+				}
 				// char ip_Address_ss2[16];
 				// int port_ss2;
 				// printf("Path: %s\n", pathThird);
@@ -1725,6 +1781,45 @@ void* handleClientInput(void* socketDesc)
 				// 	printf("IP: %s\n", ip_Address_ss2);
 				// 	printf("Port: %d\n", port_ss2);
 				// }
+
+				char newpath[1024];
+				memset(newpath, '\0', sizeof(newpath));
+				char temp[1022] ;
+				memset(temp, '\0', sizeof(temp)); 
+				getFileName(path, temp);
+				strcpy(newpath, pathThird);
+				strcat(newpath, "/");
+				strcat(newpath, temp);
+				printf("New Path by concat : %s\n", newpath);
+				// now we need to check if the file already exists in the storage server 	
+				int g = 0; 
+				for(int ii= 0 ; ii < storageServers[dest_ss_index].numPaths ; ii++)
+				{
+					
+					if(strcmp(storageServers[dest_ss_index].accessiblePaths[ii], newpath) == 0)
+					{
+						g = 1;
+						printf("File already exists\n");
+						sprintf(concatenatedstring, "File already exists");
+						logmessage = concatenatedstring;
+						loggingfunction();
+						char reply[1024];
+						strcpy(reply, "5");
+						if(send(sock, reply, strlen(reply), 0) < 0)
+						{
+							puts("Send failed");
+							logmessage = "Send failed";
+							loggingfunction();
+							return NULL;
+						}
+						break;
+					}
+					
+				}
+				if (g == 1)
+				{
+					continue;
+				}
 
 				int s1Sock, s2Sock;
 				struct sockaddr_in s1Addr, s2Addr;
@@ -1843,6 +1938,7 @@ void* handleClientInput(void* socketDesc)
 					logmessage = "Failed to send data";
 					loggingfunction();
 				}
+				printf("Sent %ld bytes\n", bytesSent_1);
 
 				printf("Data Transfer Complete\n");
 				logmessage = "Data Transfer Complete";
@@ -2114,6 +2210,8 @@ int main()
 		fprintf(stderr, "Error creating client request handler thread\n");
 		return 1;
 	}
+
+
 
 	// Wait for both threads to finish
 	pthread_join(storageThread, NULL);
