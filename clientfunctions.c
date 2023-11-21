@@ -60,7 +60,8 @@ void clientRead(int clientSocket)
         send(storageServerSocket, request, strlen(request), 0);
 
         // client receives response from Storage Server
-        char responseStorage[100];
+        char responseStorage[10000];
+        responseStorage[0] = '\0';
         recv(storageServerSocket, responseStorage, sizeof(responseStorage), 0);
 
         if (strcmp(responseStorage, "Read error") == 0 || strcmp(responseStorage, "No content") == 0 || strcmp(responseStorage, "File not Found") == 0)
@@ -89,7 +90,7 @@ void clientWrite(int clientSocket)
     
 
     // receive response from Naming Server
-    char response[100];
+    char response[10000];
     memset(response, '\0', sizeof(response));
     recv(clientSocket, response, sizeof(response), 0);
     printf("SEnten\n");
@@ -129,7 +130,8 @@ void clientWrite(int clientSocket)
         send(storageServerSocket, request, strlen(request), 0);
 
         // client receives response from Storage Server
-        char responseStorage[100];
+        char responseStorage[10000];
+        responseStorage[0] = '\0';
         recv(storageServerSocket, responseStorage, sizeof(responseStorage), 0);
 
         if (strcmp(responseStorage, "Error opening file for writing") == 0 || strcmp(responseStorage, "Write error") == 0 || strcmp(responseStorage, "File not Found") == 0)
@@ -157,7 +159,7 @@ void clientGetSize(int clientSocket)
     send(clientSocket, request, strlen(request), 0);
 
     // receive response from Naming Server
-    char response[100];
+    char response[10000];
     recv(clientSocket, response, sizeof(response), 0);
 
     if (strcmp(response, "File not Found") == 0)
@@ -196,7 +198,8 @@ void clientGetSize(int clientSocket)
         send(storageServerSocket, request, strlen(request), 0);
 
         // client receives response from Storage Server
-        char responseStorage[100];
+        char responseStorage[10000];
+            responseStorage[0] = '\0';
         recv(storageServerSocket, responseStorage, sizeof(responseStorage), 0);
 
         if (strcmp(responseStorage, "Error getting file size") == 0 || strcmp(responseStorage, "File not Found") == 0)
@@ -222,7 +225,8 @@ void clientCreate(int clientSocket)
     // send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
 
-    char response[100];
+    char response[10000];
+    response[0] = '\0';
     recv(clientSocket, response, sizeof(response), 0);
 
     int index_case;
@@ -252,7 +256,8 @@ void clientDelete(int clientSocket)
     // send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
 
-    char response[100];
+    char response[10000];
+    response[0] = '\0';
     recv(clientSocket, response, sizeof(response), 0);
 
     int index_case;
@@ -287,7 +292,8 @@ void clientCopy(int clientSocket)
     // strcpy(request, "COPY ./src/hello ./src/jainit\n");
     send(clientSocket, request, strlen(request), 0);
 
-    char response[100];
+    char response[10000];
+    response[0] = '\0';
     recv(clientSocket, response, sizeof(response), 0);
 
     int index_case;
@@ -340,6 +346,7 @@ void clientListAll(int clientSocket)
     send(clientSocket, request, strlen(request), 0);
 
     char response[40960];
+    response[0] = '\0';
     recv(clientSocket, response, sizeof(response), 0);
 
     int i = 0;
