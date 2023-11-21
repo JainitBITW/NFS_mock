@@ -1,56 +1,31 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
-#include <unistd.h>
 
-void deleteDirectory(const char *path);
+void getSubstringBeforeLastSlash(const char *input, char *output, size_t outputSize) {
+    const char *slashPosition = strrchr(input, '/');
 
-int main() {
-    const char *directoryPath = "./src/1d";  // Replace with the path of the directory you want to delete
-    deleteDirectory(directoryPath);
-
-    return 0;
+    if (slashPosition != NULL) {
+        size_t length = slashPosition - input;
+        if (length < outputSize) {
+            strncpy(output, input, length);
+            output[length] = '\0';  // Null-terminate the output string
+        } else {
+            fprintf(stderr, "Output buffer too small for substring.\n");
+        }
+    } else {
+        // No '/' found, copy the whole string
+        strncpy(output, input, outputSize - 1);
+        output[outputSize - 1] = '\0';  // Null-terminate the output string
+    }
 }
 
-void deleteDirectory(const char *path) {
-    DIR *dir;
-    struct dirent *entry;
-    char fullPath[PATH_MAX];
+int main() {
+    const char *inputString = "path/to/your/directory/yourfile.txt";
+    char outputBuffer[256];  // Adjust the size based on your needs
 
-    // Open the directory
-    if ((dir = opendir(path)) == NULL) {
-        perror("opendir");
-        exit(EXIT_FAILURE);
-    }
+    getSubstringBeforeLastSlash(inputString, outputBuffer, sizeof(outputBuffer));
 
-    // Iterate through each entry in the directory
-    while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
-            continue;  // Skip "." and ".." entries
-        }
+    printf("Substring before the last '/': %s\n", outputBuffer);
 
-        // Create full path to the entry
-        snprintf(fullPath, sizeof(fullPath), "%s/%s", path, entry->d_name);
-
-        // Recursively delete subdirectories
-        if (entry->d_type == DT_DIR) {
-            deleteDirectory(fullPath);
-        } else {
-            // Delete regular files
-            if (unlink(fullPath) != 0) {
-                perror("unlink");
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
-
-    // Close the directory
-    closedir(dir);
-
-    // Remove the directory itself
-    if (rmdir(path) != 0) {
-        perror("rmdir");
-        exit(EXIT_FAILURE);
-    }
+    return 0;
 }

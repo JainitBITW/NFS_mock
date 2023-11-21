@@ -51,6 +51,8 @@ typedef struct ThreadArgs
 	char buffer[1024];
 	int is_original;
 	int clientsock;
+	int storage_server_index;
+	int task = 0; // 0 -> WRITE 1 -> CREATE 2 -> DELETE
 } ThreadArgs;
 PathToServerMap* serversByPath = NULL;
 
@@ -446,38 +448,52 @@ void* send_request_async(void* arg)
 		return NULL;
 	}
 
-	if(args->is_original == 1)
+	char storageserverreply[2000];
+	// Receive a reply from the server
+	memset(storageserverreply, '\0', sizeof(storageserverreply));
+	if(recv(sock, storageserverreply, 2000, 0) < 0)
 	{
-		char storageserverreply[2000];
-		// Receive a reply from the server
-		memset(storageserverreply, '\0', sizeof(storageserverreply));
-		if(recv(sock, storageserverreply, 2000, 0) < 0)
-		{
-			puts("recv failed");
-		}
+		puts("recv failed");
+	}
 
-		printf("Reply received from storage server: %s\n", storageserverreply);
+	printf("Reply received from storage server: %s\n", storageserverreply);
 
-		// Its its not -1
-		char command[100];
-		char path[1000];
-		sscanf(args->buffer, "%s %s", command, path);
+	// Its its not -1
+	char command[100];
+	char path[1000];
+
+	sscanf(args->buffer, "%s %s", command, path);
+	if(args->task == 1)
+	{
 		if(strcmp(storageserverreply, "-1") != 0)
 		{
 			// Add the path to the storage server
-			strcpy(storageServers[0].accessiblePaths[storageServers[0].numPaths], path);
-			storageServers[0].numPaths++;
+			strcpy(storageServers[args->storage_server_index]
+					   .accessiblePaths[args->storage_server_index],
+				   path);
+			storageServers[args->storage_server_index].numPaths++;
 
 			// Add the path to the storage server
 			PathToServerMap* s = malloc(sizeof(PathToServerMap));
 			strcpy(s->path, path);
 
 			// Copy the newServer data into the hash table entry
-			s->server = storageServers[0]; // Direct copy of the server
+			s->server = storageServers[args->storage_server_index]; // Direct copy of the server
 
 			HASH_ADD_STR(serversByPath, path, s);
+
+			// Send back to client
+			if(args->is_original == 1)
+			{
+				if(send(args->clientsock, storageserverreply, strlen(storageserverreply), 0) < 0)
+				{
+					puts("Send failed");
+					return NULL;
+				}
+			}
 		}
 	}
+	
 
 	return NULL;
 }
@@ -603,7 +619,9 @@ void* handleClientInput(void* socketDesc)
 		{
 			strip(buffer);
 			char buffer_copy[1024];
+			memset(buffer_copy, '\0', sizeof(buffer_copy));
 			strcpy(buffer_copy, buffer);
+
 			printf("Received command: %s\n", buffer);
 
 			// // handling the command from client
@@ -620,6 +638,7 @@ void* handleClientInput(void* socketDesc)
 			// }
 
 			char path[1024];
+			memset(path, '\0', sizeof(path));
 			extractPath(buffer_copy, path, sizeof(path));
 
 			//  checking the command
@@ -645,6 +664,7 @@ void* handleClientInput(void* socketDesc)
 
 				int foundFlag = 0;
 				char ip_Address_ss[16];
+				memset(ip_Address_ss, '\0', sizeof(ip_Address_ss));
 				int port_ss;
 
 				PathToServerMap* s;
@@ -764,27 +784,21 @@ void* handleClientInput(void* socketDesc)
 					// storageserveraddress.sin_family = AF_INET;
 					// storageserveraddress.sin_port = htons(port_ss);
 
-					
 					// Connect to remote server
 					if(storageServerCount >= 3)
 					{
-					
-						int store_1= 1;
+
+						int store_1 = 1;
 						int store_2 = 2;
 
 						char path1[1024];
+						memset(path1, '\0', sizeof(path1));
 						char path2[1024];
-						char* without_prefix = remove_prefix(
-							path, storageServers[0].accessiblePaths[0]);
+						memset(path2, '\0', sizeof(path2));
+						char* without_prefix = remove_prefix(path, ".");
 						printf("Without prefix: %s\n", without_prefix);
-						sprintf(path1,
-								"%sBackup/%s",
-								storageServers[store_1].accessiblePaths[0],
-								without_prefix);
-						sprintf(path2,
-								"%sBackup/%s",
-								storageServers[store_2].accessiblePaths[0],
-								without_prefix);
+						sprintf(path1, "./Backup0%s", without_prefix);
+						sprintf(path2, "./Backup1%s", without_prefix);
 						printf("Path1: %s\n", path1);
 						printf("Path2: %s\n", path2);
 
@@ -794,6 +808,8 @@ void* handleClientInput(void* socketDesc)
 						args1->port = storageServers[store_1].nmPort;
 						sprintf(args1->buffer, "CREATE %s", path1);
 						args1->is_original = 0;
+						args1->storage_server_index = store_1;
+						args1->task = 1;
 						pthread_t thread1;
 						pthread_create(&thread1, NULL, send_request_async, (void*)args1);
 						pthread_detach(thread1);
@@ -803,6 +819,8 @@ void* handleClientInput(void* socketDesc)
 						args2->port = storageServers[store_2].nmPort;
 						sprintf(args2->buffer, "CREATE %s", path2);
 						args2->is_original = 0;
+						args2->storage_server_index = store_2;
+						args2->task = 1;
 						pthread_t thread2;
 						pthread_create(&thread2, NULL, send_request_async, (void*)args2);
 						pthread_detach(thread2);
@@ -812,6 +830,8 @@ void* handleClientInput(void* socketDesc)
 						args3->port = storageServers[0].nmPort;
 						args3->is_original = 1;
 						args3->clientsock = clientsock;
+						args3->storage_server_index = 0;
+						args3->task = 1;
 						sprintf(args3->buffer, "CREATE %s", path);
 						pthread_t thread3;
 						pthread_create(&thread3, NULL, send_request_async, (void*)args3);
@@ -903,49 +923,50 @@ void* handleClientInput(void* socketDesc)
 				if(foundFlag == 1)
 				{
 					// connect to the storage server port and ip address
-					int storageserversocket;
-					struct sockaddr_in storageserveraddress;
-					char storageserverreply[2000];
+					// int storageserversocket;
+					// struct sockaddr_in storageserveraddress;
+					// char storageserverreply[2000];
 
-					// Create socket
-					storageserversocket = socket(AF_INET, SOCK_STREAM, 0);
-					if(storageserversocket == -1)
-					{
-						printf("Could not create socket");
-					}
+					// // Create socket
+					// storageserversocket = socket(AF_INET, SOCK_STREAM, 0);
+					// if(storageserversocket == -1)
+					// {
+					// 	printf("Could not create socket");
+					// }
 
-					storageserveraddress.sin_addr.s_addr = inet_addr(s->server.ipAddress);
-					storageserveraddress.sin_family = AF_INET;
-					storageserveraddress.sin_port = htons(port_ss);
+					// storageserveraddress.sin_addr.s_addr = inet_addr(s->server.ipAddress);
+					// storageserveraddress.sin_family = AF_INET;
+					// storageserveraddress.sin_port = htons(port_ss);
 
-					// Connect to remote server
-					if(connect(storageserversocket,
-							   (struct sockaddr*)&storageserveraddress,
-							   sizeof(storageserveraddress)) < 0)
-					{
-						perror("connect failed. Error");
-						return NULL;
-					}
+					// // Connect to remote server
+					// if(connect(storageserversocket,
+					// 		   (struct sockaddr*)&storageserveraddress,
+					// 		   sizeof(storageserveraddress)) < 0)
+					// {
+					// 	perror("connect failed. Error");
+					// 	return NULL;
+					// }
 
-					// Send some data
-					if(send(storageserversocket, buffer_copy, strlen(buffer_copy), 0) < 0)
-					{
-						puts("Send failed");
-						return NULL;
-					}
+					// // Send some data
+					// if(send(storageserversocket, buffer_copy, strlen(buffer_copy), 0) < 0)
+					// {
+					// 	puts("Send failed");
+					// 	return NULL;
+					// }
 
-					// Receive a reply from the server
-					if(recv(storageserversocket, storageserverreply, 2000, 0) < 0)
-					{
-						puts("recv failed");
-					}
+					// // Receive a reply from the server
+					// if(recv(storageserversocket, storageserverreply, 2000, 0) < 0)
+					// {
+					// 	puts("recv failed");
+					// }
 
-					// Send back to client
-					if(send(sock, storageserverreply, strlen(storageserverreply), 0) < 0)
-					{
-						puts("Send failed");
-						return NULL;
-					}
+					// // Send back to client
+					// if(send(sock, storageserverreply, strlen(storageserverreply), 0) < 0)
+					// {
+					// 	puts("Send failed");
+					// 	return NULL;
+					// }
+					
 				}
 				else if(foundFlag == 0)
 				{
