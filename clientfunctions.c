@@ -226,11 +226,11 @@ void clientCreate(int clientSocket)
     int index_case;
     index_case = atoi(response);
 
-    if (index_case == 1)
+    if (index_case == 2)
     {
         printf("Error creating directory\n");
     }
-    else if (index_case == 2)
+    else if (index_case == 1)
     {
         printf("Directory created\n");
     }

@@ -6,6 +6,7 @@
         "libgen.h": "c",
         "stdlib.h": "c",
         "ctype.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "__config": "cpp"
     }
 }

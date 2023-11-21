@@ -311,7 +311,7 @@ void listFilesRecursively(const char* path)
 		perror("Error opening directory");
 	}
 }
-void deleteDirectory(char* path)
+int deleteDirectory(char* path)
 {
 	DIR* dir;
 	struct dirent* entry;
@@ -321,7 +321,7 @@ void deleteDirectory(char* path)
 	if((dir = opendir(path)) == NULL)
 	{
 		perror("opendir");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	// Iterate through each entry in the directory
@@ -338,7 +338,11 @@ void deleteDirectory(char* path)
 		// Recursively delete subdirectories
 		if(entry->d_type == DT_DIR)
 		{
-			deleteDirectory(fullPath);
+			int ret = deleteDirectory(fullPath);
+			if(ret ==-1 )
+			{
+				return ret;
+			}
 		}
 		else
 		{
@@ -346,7 +350,7 @@ void deleteDirectory(char* path)
 			if(unlink(fullPath) != 0)
 			{
 				perror("unlink");
-				exit(EXIT_FAILURE);
+				return -1;
 			}
 		}
 	}
@@ -358,7 +362,7 @@ void deleteDirectory(char* path)
 	if(rmdir(path) != 0)
 	{
 		perror("rmdir");
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 }
 char* getDirectoryPath(const char* path)
@@ -780,6 +784,8 @@ void* executeNMRequest(void* arg)
 			printf("Error in copying the files\n");
 			memset(response, '\0', sizeof(response));
 			strcpy(response, "1");
+			printf("Response right: %s\n", response);
+			printf("Response wrong: %s\n", buffer);
 			send(NMSocket, response, strlen(response), 0);
 			return NULL;
 		}
@@ -872,7 +878,16 @@ void* executeNMRequest(void* arg)
 		if(S_ISDIR(path_stat.st_mode))
 		{ // Check if it's a directory
 			// rmdir only works on empty directories. For non-empty directories, you'll need a more complex function
-			deleteDirectory(path);
+			int ret = deleteDirectory(path);
+			if(ret == -1)
+			{
+				perror("Error deleting directory");
+				strcpy(response, "-1");
+			}
+			else
+			{
+				strcpy(response, "2");
+			}
 			printf("Directory deleted: %s\n", path);
 		}
 		else
@@ -885,7 +900,7 @@ void* executeNMRequest(void* arg)
 			else
 			{
 				perror("Error deleting file");
-				strcpy(response, "4");
+				strcpy(response, "-1");
 			}
 		}
 		send(NMSocket, response, strlen(response), 0);
