@@ -32,7 +32,7 @@
 
 // OutGoing Connection
 #define NAMING_SERVER_PORT 8000
-#define MOUNT "."
+#define MOUNT "./src"
 
 // char NMIPADDRESS[16]; // Default value
 // char SSIPADDRESS[16]; // For storing the IP address

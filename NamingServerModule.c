@@ -24,6 +24,37 @@
 //     char fileTree[1000]; // Placeholder for file tree representation
 // } FileSystem;
 
+FILE * logfile;
+char * logmessage;
+
+void loggingfunction()
+{
+	// Open the log file in append mode
+	logfile = fopen("log.txt", "a");
+
+	// If file could not be opened
+	if (logfile == NULL)
+	{
+		printf("Could not open log file\n");
+		return;
+	}
+
+	// Append to the log file, by adding a timestamp
+	time_t ltime;
+	ltime = time(NULL);
+	char *time = asctime(localtime(&ltime));
+	time[strlen(time) - 1] = '\0'; // Remove the newline character at the end
+
+	// log message
+	fprintf(logfile, "%s: %s\n", time, logmessage);
+
+	// Close the log file
+	fclose(logfile);
+
+	// make log message pointer NULL
+	logmessage = NULL;
+}
+
 typedef struct StorageServer
 {
 	char ipAddress[16]; // IPv4 Address
@@ -52,7 +83,7 @@ typedef struct ThreadArgs
 	int is_original;
 	int clientsock;
 	int storage_server_index;
-	int task = 0; // 0 -> WRITE 1 -> CREATE 2 -> DELETE
+	int task; // 0 -> WRITE 1 -> CREATE 2 -> DELETE
 } ThreadArgs;
 PathToServerMap* serversByPath = NULL;
 
@@ -66,6 +97,14 @@ void initializeNamingServer()
 	printf("Initializing Naming Server...\n");
 	// Initialize file system and directory structure
 	// memset(fileSystem, 0, sizeof(fileSystem));
+
+	// check the existence of a log file called log.txt. If aready there, then delete it and create a new one
+	if (access("log.txt", F_OK) != -1)
+	{
+		remove("log.txt");
+	}
+	logmessage = "Initializing Naming Server...";
+	loggingfunction();
 
 	// Initialize storage server list
 	memset(storageServers, 0, sizeof(storageServers));
@@ -193,23 +232,31 @@ void update_list_of_accessiblepaths(int index)
 	if (sock == -1)
 	{
 		printf("Could not create socket");
+		logmessage = "Could not create socket";
+		loggingfunction();
 	}
 
 	// Connect to remote server
 	if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0)
 	{
 		perror("connect failed. Error");
+		logmessage = "connect failed. Error";
+		loggingfunction();
 		return;
 	}
 	// Send the request
 	if (send(sock, message, strlen(message), 0) < 0)
 	{
 		puts("Send failed");
+		logmessage = "Send failed";
+		loggingfunction();
 		return;
 	}
 	if (recv(sock, server_reply, 2000, 0) < 0)
 	{
 		puts("recv failed");
+		logmessage = "recv failed";
+		loggingfunction();
 	}
 	// this is the number of paths
 	int numPaths = atoi(server_reply);
@@ -219,6 +266,8 @@ void update_list_of_accessiblepaths(int index)
 	if (send(sock, server_reply, strlen(server_reply), 0) < 0)
 	{
 		puts("Send failed");
+		logmessage = "Send failed";
+		loggingfunction();
 		return;
 	}
 	memset(server_reply, '\0', sizeof(server_reply));
@@ -226,10 +275,15 @@ void update_list_of_accessiblepaths(int index)
 	if (recv(sock, server_reply, 2000, 0) < 0)
 	{
 		puts("recv failed");
+		logmessage = "recv failed";
+		loggingfunction();
 	}
 	if(strcmp(server_reply, "OK") != 0)
 	{
 		printf("Error receiving paths\n");
+		logmessage = "Error receiving paths";
+		loggingfunction();
+
 		return;
 	}
 
@@ -241,6 +295,8 @@ void update_list_of_accessiblepaths(int index)
 		if (recv(sock, server_reply, 2000, 0) < 0)
 		{
 			puts("recv failed");
+			logmessage = "recv failed";
+			loggingfunction();
 
 			return;
 		}
@@ -251,6 +307,8 @@ void update_list_of_accessiblepaths(int index)
 		if (send(sock, return_message, strlen(return_message), 0) < 0)
 		{
 			puts("Send failed");
+			logmessage = "Send failed";
+			loggingfunction();
 			return;
 		}
 	}
@@ -282,17 +340,44 @@ void *handleStorageServer(void *socketDesc)
 			pthread_mutex_unlock(&storageServerMutex);
 
 			// Printing
+			char concatenatedstring[1024];
 			printf("Received storage server details:\n");
+			sprintf(concatenatedstring, "Received storage server %d details:", storageServerCount);
+			logmessage = concatenatedstring;
+			loggingfunction();
+
 			printf("IP Address: %s\n", newServer.ipAddress);
+			sprintf(concatenatedstring, "IP Address: %s", newServer.ipAddress);
+			logmessage = concatenatedstring;
+			loggingfunction();
+
 			printf("NM Port: %d\n", newServer.nmPort);
+			sprintf(concatenatedstring, "NM Port: %d", newServer.nmPort);
+			logmessage = concatenatedstring;
+			loggingfunction();
+
 			printf("Client Port: %d\n", newServer.clientPort);
+			sprintf(concatenatedstring, "Client Port: %d", newServer.clientPort);
+			logmessage = concatenatedstring;
+			loggingfunction();
+
 			printf("SS Port: %d\n", newServer.ssPort_send);
+			sprintf(concatenatedstring, "SS Port: %d", newServer.ssPort_send);
+			logmessage = concatenatedstring;
+			loggingfunction();
+
 			printf("SS Port: %d\n", newServer.ssPort_recv);
+			sprintf(concatenatedstring, "SS Port: %d", newServer.ssPort_recv);
+			logmessage = concatenatedstring;
+			loggingfunction();
 			// printf("Accessible Paths: %s\n", newServer.accessiblePaths);
-			printf("NUM PATHS: %d\n", newServer.numPaths);
+			printf("NUM PATHS: %d", newServer.numPaths);
 			for (int path_no = 0; path_no < newServer.numPaths; path_no++)
 			{
 				printf("Accessible Paths: %s\n", newServer.accessiblePaths[path_no]);
+				sprintf(concatenatedstring, "Accessible Paths: %s", newServer.accessiblePaths[path_no]);
+				logmessage = concatenatedstring;
+				loggingfunction();
 			}
 
 			for (int path_no = 0; path_no < newServer.numPaths; path_no++)
@@ -309,6 +394,8 @@ void *handleStorageServer(void *socketDesc)
 			// Send ACK
 			const char *ackMessage = "Registration Successful";
 			send(sock, ackMessage, strlen(ackMessage), 0);
+			logmessage = "Registration Successful";
+			loggingfunction();
 		}
 		else
 		{
@@ -316,6 +403,8 @@ void *handleStorageServer(void *socketDesc)
 			// Send server limit reached message
 			const char *limitMessage = "Storage server limit reached";
 			send(sock, limitMessage, strlen(limitMessage), 0);
+			logmessage = "Storage server limit reached";
+			loggingfunction();
 		}
 	}
 
@@ -335,6 +424,8 @@ void send_request(char *destination_ip, int destination_port, char *buffer)
 	if (sock == -1)
 	{
 		printf("Could not create socket");
+		logmessage = "Could not create socket";
+		loggingfunction();
 	}
 
 	server.sin_addr.s_addr = inet_addr(destination_ip);
@@ -345,6 +436,8 @@ void send_request(char *destination_ip, int destination_port, char *buffer)
 	if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0)
 	{
 		perror("connect failed. Error");
+		logmessage = "connect failed. Error";
+		loggingfunction();
 		return;
 	}
 
@@ -352,6 +445,8 @@ void send_request(char *destination_ip, int destination_port, char *buffer)
 	if (send(sock, buffer, strlen(buffer), 0) < 0)
 	{
 		puts("Send failed");
+		logmessage = "Send failed";
+		loggingfunction();
 		return;
 	}
 
@@ -359,10 +454,16 @@ void send_request(char *destination_ip, int destination_port, char *buffer)
 	if (recv(sock, server_reply, 2000, 0) < 0)
 	{
 		puts("recv failed");
+		logmessage = "recv failed";
+		loggingfunction();
 	}
 
 	puts("Server reply :");
 	puts(server_reply);
+	char concatenatedstring[1024];
+	sprintf(concatenatedstring, "Server reply : %s", server_reply);
+	logmessage = concatenatedstring;
+	loggingfunction();
 
 	close(sock);
 }
@@ -377,6 +478,8 @@ void *startStorageServerListener()
 	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
 	{
 		perror("socket failed");
+		logmessage = "socket failed";
+		loggingfunction();
 		exit(EXIT_FAILURE);
 	}
 
@@ -390,6 +493,8 @@ void *startStorageServerListener()
 	if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
 	{
 		perror("bind failed");
+		logmessage = "bind failed";
+		loggingfunction();
 		exit(EXIT_FAILURE);
 	}
 
@@ -397,6 +502,8 @@ void *startStorageServerListener()
 	if (listen(server_fd, MAX_STORAGE_SERVERS) < 0)
 	{
 		perror("listen");
+		logmessage = "listen";
+		loggingfunction();
 		exit(EXIT_FAILURE);
 	}
 
@@ -405,6 +512,9 @@ void *startStorageServerListener()
 		if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
 		{
 			perror("accept");
+			logmessage = "accept";
+			loggingfunction();
+
 			continue;
 		}
 
@@ -415,6 +525,8 @@ void *startStorageServerListener()
 		if (pthread_create(&sn_thread, NULL, handleStorageServer, (void *)new_sock) < 0)
 		{
 			perror("could not create thread");
+			logmessage = "could not create thread";
+			loggingfunction();
 			free(new_sock);
 		}
 
@@ -449,9 +561,22 @@ void get_path_ss(char *path, PathToServerMap *s, int *foundFlag)
 		strcpy(ip_Address_ss, s->server.ipAddress);
 		port_ss = s->server.clientPort;
 		*foundFlag = 1;
+		char concatenatedstring[1024];
+
 		printf("Found server for path %s\n", path);
+		sprintf(concatenatedstring, "Found server for path %s", path);
+		logmessage = concatenatedstring;
+		loggingfunction();
+
 		printf("IP: %s\n", ip_Address_ss);
+		sprintf(concatenatedstring, "IP: %s", ip_Address_ss);
+		logmessage = concatenatedstring;
+		loggingfunction();
+
 		printf("Port: %d\n", port_ss);
+		sprintf(concatenatedstring, "Port: %d", port_ss);
+		logmessage = concatenatedstring;
+		loggingfunction();
 	}
 }
 char *getDirectoryPath(const char *path)
@@ -538,6 +663,8 @@ void* send_request_async(void* arg)
 	if(sock == -1)
 	{
 		printf("Could not create socket");
+		logmessage = "Could not create socket";
+		loggingfunction();
 	}
 
 	server.sin_addr.s_addr = inet_addr(args->ipAddress);
@@ -548,6 +675,8 @@ void* send_request_async(void* arg)
 	if(connect(sock, (struct sockaddr*)&server, sizeof(server)) < 0)
 	{
 		perror("connect failed. Error");
+		logmessage = "connect failed. Error";
+		loggingfunction();
 		return NULL;
 	}
 
@@ -555,6 +684,8 @@ void* send_request_async(void* arg)
 	if(send(sock, args->buffer, strlen(args->buffer), 0) < 0)
 	{
 		puts("Send failed");
+		logmessage = "Send failed";
+		loggingfunction();
 		return NULL;
 	}
 
@@ -564,10 +695,15 @@ void* send_request_async(void* arg)
 	if(recv(sock, storageserverreply, 2000, 0) < 0)
 	{
 		puts("recv failed");
+		logmessage = "recv failed";
+		loggingfunction();
 	}
 
 	printf("Reply received from storage server: %s\n", storageserverreply);
-
+	char concatenatedstring[1024];
+	sprintf(concatenatedstring, "Reply received from storage server: %s", storageserverreply);
+	logmessage = concatenatedstring;
+	loggingfunction();
 	// Its its not -1
 	char command[100];
 	char path[1000];
@@ -598,6 +734,8 @@ void* send_request_async(void* arg)
 				if(send(args->clientsock, storageserverreply, strlen(storageserverreply), 0) < 0)
 				{
 					puts("Send failed");
+					logmessage = "Send failed";
+					loggingfunction();
 					return NULL;
 				}
 			}
@@ -656,8 +794,8 @@ void strip(char* str)
 	}
 	str[i] = '\0'; // Null-terminate the string
 	// Condense multiple spaces and shift characters
-	int i = 0, j = start;
-	int inSpace = 0;
+	i = 0, j = start;
+	inSpace = 0;
 	while (j <= end)
 	{
 		if (isspace((unsigned char)str[j]))
@@ -685,6 +823,8 @@ void extractPath(const char* input, char* path, size_t pathSize)
 	if(firstSpace == NULL)
 	{
 		printf("No spaces found.\n");
+		logmessage = "No spaces found.";
+		loggingfunction();
 		return;
 	}
 
@@ -701,6 +841,8 @@ void extractPath(const char* input, char* path, size_t pathSize)
 	if(pathLength >= pathSize)
 	{
 		printf("Path buffer is too small.\n");
+		logmessage = "Path buffer is too small.";
+		loggingfunction();
 		return;
 	}
 
@@ -716,6 +858,8 @@ void extractPathThird(const char* input, char* path, size_t pathSize)
 	if(firstSpace == NULL)
 	{
 		printf("No spaces found.\n");
+		logmessage = "No spaces found.";
+		loggingfunction();
 		return;
 	}
 
@@ -724,6 +868,8 @@ void extractPathThird(const char* input, char* path, size_t pathSize)
 	if(secondSpace == NULL)
 	{
 		printf("Only one space found.\n");
+		logmessage = "Only one space found.";
+		loggingfunction();
 		return;
 	}
 
@@ -740,6 +886,8 @@ void extractPathThird(const char* input, char* path, size_t pathSize)
 	if(pathLength >= pathSize)
 	{
 		printf("Path buffer is too small.\n");
+		logmessage = "Path buffer is too small.";
+		loggingfunction();
 		return;
 	}
 
@@ -748,133 +896,145 @@ void extractPathThird(const char* input, char* path, size_t pathSize)
 	path[pathLength] = '\0'; // Null-terminate the string
 }
 
-void* handleClientInput(void* socketDesc)
-{
-	int start = 0, end = strlen(str) - 1;
+// void* handleClientInput(void* socketDesc)
+// {
+// 	int start = 0, end = strlen(str) - 1;
 
-	// Remove leading whitespaces
-	while (str[start] && isspace((unsigned char)str[start]))
-	{
-		start++;
-	}
+// 	// Remove leading whitespaces
+// 	while (str[start] && isspace((unsigned char)str[start]))
+// 	{
+// 		start++;
+// 	}
 
-	// Remove trailing whitespaces
-	while (end >= start && isspace((unsigned char)str[end]))
-	{
-		end--;
-	}
+// 	// Remove trailing whitespaces
+// 	while (end >= start && isspace((unsigned char)str[end]))
+// 	{
+// 		end--;
+// 	}
 
-	// Condense multiple spaces and shift characters
-	int i = 0, j = start;
-	int inSpace = 0;
-	while (j <= end)
-	{
-		if (isspace((unsigned char)str[j]))
-		{
-			if (!inSpace)
-			{
-				str[i++] = ' '; // Add one space and set flag
-				inSpace = 1;
-			}
-		}
-		else
-		{
-			str[i++] = str[j];
-			inSpace = 0; // Reset space flag
-		}
-		j++;
-	}
-	str[i] = '\0'; // Null-terminate the string
-}
+// 	// Condense multiple spaces and shift characters
+// 	int i = 0, j = start;
+// 	int inSpace = 0;
+// 	while (j <= end)
+// 	{
+// 		if (isspace((unsigned char)str[j]))
+// 		{
+// 			if (!inSpace)
+// 			{
+// 				str[i++] = ' '; // Add one space and set flag
+// 				inSpace = 1;
+// 			}
+// 		}
+// 		else
+// 		{
+// 			str[i++] = str[j];
+// 			inSpace = 0; // Reset space flag
+// 		}
+// 		j++;
+// 	}
+// 	str[i] = '\0'; // Null-terminate the string
+// }
 
-void extractPath(const char *input, char *path, size_t pathSize)
-{
-	// Find the first space
-	const char *firstSpace = strchr(input, ' ');
-	if (firstSpace == NULL)
-	{
-		printf("No spaces found.\n");
-		return;
-	}
+// void extractPath(const char *input, char *path, size_t pathSize)
+// {
+// 	// Find the first space
+// 	const char *firstSpace = strchr(input, ' ');
+// 	if (firstSpace == NULL)
+// 	{
+// 		printf("No spaces found.\n");
+// 		logmessage = "No spaces found.";
+// 		loggingfunction();
+// 		return;
+// 	}
 
-	// Find the second space or the end of the string
-	const char *secondSpace = strchr(firstSpace + 1, ' ');
-	if (secondSpace == NULL)
-	{
-		// If only one space found, use the end of the string
-		secondSpace = input + strlen(input);
-	}
+// 	// Find the second space or the end of the string
+// 	const char *secondSpace = strchr(firstSpace + 1, ' ');
+// 	if (secondSpace == NULL)
+// 	{
+// 		// If only one space found, use the end of the string
+// 		secondSpace = input + strlen(input);
+// 	}
 
-	// Calculate the length of the path
-	size_t pathLength = secondSpace - firstSpace - 1;
-	if (pathLength >= pathSize)
-	{
-		printf("Path buffer is too small.\n");
-		return;
-	}
+// 	// Calculate the length of the path
+// 	size_t pathLength = secondSpace - firstSpace - 1;
+// 	if (pathLength >= pathSize)
+// 	{
+// 		printf("Path buffer is too small.\n");
+// 		logmessage = "Path buffer is too small.";
+// 		loggingfunction();
+// 		return;
+// 	}
 
-	// Copy the path into the provided buffer
-	strncpy(path, firstSpace + 1, pathLength);
-	path[pathLength] = '\0'; // Null-terminate the string
-}
+// 	// Copy the path into the provided buffer
+// 	strncpy(path, firstSpace + 1, pathLength);
+// 	path[pathLength] = '\0'; // Null-terminate the string
+// }
 
-void extractPathThird(const char *input, char *path, size_t pathSize)
-{
-	// Find the first space
-	const char *firstSpace = strchr(input, ' ');
-	if (firstSpace == NULL)
-	{
-		printf("No spaces found.\n");
-		return;
-	}
+// void extractPathThird(const char *input, char *path, size_t pathSize)
+// {
+// 	// Find the first space
+// 	const char *firstSpace = strchr(input, ' ');
+// 	if (firstSpace == NULL)
+// 	{
+// 		printf("No spaces found.\n");
+// 		logmessage = "No spaces found.";
+// 		loggingfunction();
+// 		return;
+// 	}
 
-	// Find the second space
-	const char *secondSpace = strchr(firstSpace + 1, ' ');
-	if (secondSpace == NULL)
-	{
-		printf("Only one space found.\n");
-		return;
-	}
+// 	// Find the second space
+// 	const char *secondSpace = strchr(firstSpace + 1, ' ');
+// 	if (secondSpace == NULL)
+// 	{
+// 		printf("Only one space found.\n");
+// 		logmessage = "Only one space found.";
+// 		loggingfunction();
+// 		return;
+// 	}
 
-	// Find the third space or the end of the string
-	const char *thirdSpace = strchr(secondSpace + 1, ' ');
-	if (thirdSpace == NULL)
-	{
-		// If only two spaces found, use the end of the string
-		thirdSpace = input + strlen(input);
-	}
-	// Find the third space or the end of the string
-	const char* thirdSpace = strchr(secondSpace + 1, ' ');
-	if(thirdSpace == NULL)
-	{
-		// If only two spaces found, use the end of the string
-		thirdSpace = input + strlen(input);
-	}
+// 	// Find the third space or the end of the string
+// 	const char *thirdSpace = strchr(secondSpace + 1, ' ');
+// 	if (thirdSpace == NULL)
+// 	{
+// 		// If only two spaces found, use the end of the string
+// 		thirdSpace = input + strlen(input);
+// 	}
+// 	// Find the third space or the end of the string
+// 	const char* thirdSpace = strchr(secondSpace + 1, ' ');
+// 	if(thirdSpace == NULL)
+// 	{
+// 		// If only two spaces found, use the end of the string
+// 		thirdSpace = input + strlen(input);
+// 	}
 
-	// Calculate the length of the path
-	size_t pathLength = thirdSpace - secondSpace - 1;
-	if (pathLength >= pathSize)
-	{
-		printf("Path buffer is too small.\n");
-		return;
-	}
-	// Calculate the length of the path
-	size_t pathLength = thirdSpace - secondSpace - 1;
-	if(pathLength >= pathSize)
-	{
-		printf("Path buffer is too small.\n");
-		return;
-	}
+// 	// Calculate the length of the path
+// 	size_t pathLength = thirdSpace - secondSpace - 1;
+// 	if (pathLength >= pathSize)
+// 	{
+// 		printf("Path buffer is too small.\n");
+// 		logmessage = "Path buffer is too small.";
+// 		loggingfunction();
+// 		return;
+// 	}
+// 	// Calculate the length of the path
+// 	size_t pathLength = thirdSpace - secondSpace - 1;
+// 	if(pathLength >= pathSize)
+// 	{
+// 		printf("Path buffer is too small.\n");
+// 		logmessage = "Path buffer is too small.";
+// 		loggingfunction();
+// 		return;
+// 	}
 
-	// Copy the path into the provided buffer
-	strncpy(path, secondSpace + 1, pathLength);
-	path[pathLength] = '\0'; // Null-terminate the string
-	// Copy the path into the provided buffer
-	strncpy(path, secondSpace + 1, pathLength);
-	path[pathLength] = '\0'; // Null-terminate the string
-}
+// 	// Copy the path into the provided buffer
+// 	strncpy(path, secondSpace + 1, pathLength);
+// 	path[pathLength] = '\0'; // Null-terminate the string
+// 	// Copy the path into the provided buffer
+// 	strncpy(path, secondSpace + 1, pathLength);
+// 	path[pathLength] = '\0'; // Null-terminate the string
+// }
 
-void *handleClientInput(void *socketDesc)
+void *handleClientInput(void *socketDesc);
 
 void* handleClientInput(void* socketDesc)
 {
@@ -886,12 +1046,16 @@ void* handleClientInput(void* socketDesc)
 	{
 		if ((readSize = recv(sock, buffer, sizeof(buffer), 0)) > 0)
 		{
+			char concatenatedstring[1024];
 			strip(buffer);
 			char buffer_copy[1024];
 			memset(buffer_copy, '\0', sizeof(buffer_copy));
 			strcpy(buffer_copy, buffer);
 
 			printf("Received command: %s\n", buffer);
+			sprintf(concatenatedstring, "Received command: %s", buffer);
+			logmessage = concatenatedstring;
+			loggingfunction();
 
 			// // handling the command from client
 
@@ -915,8 +1079,19 @@ void* handleClientInput(void* socketDesc)
 			   strncmp(buffer_copy, "GETSIZE", 7) == 0)
 			{
 				printf("Command: %s\n", buffer_copy);
+				sprintf(concatenatedstring, "Command: %s", buffer_copy);
+				logmessage = concatenatedstring;
+				loggingfunction();
+
 				printf("PATH : %s\n", path);
+				sprintf(concatenatedstring, "PATH : %s", path);
+				logmessage = concatenatedstring;
+				loggingfunction();
+
 				printf("PATH : %s\n", path);
+				sprintf(concatenatedstring, "PATH : %s", path);
+				logmessage = concatenatedstring;
+				loggingfunction();
 				// finding out the storage server for the file
 				// path is tokenArray[1]
 				// strcpy(path, tokenArray[1]);
@@ -954,8 +1129,19 @@ void* handleClientInput(void* socketDesc)
 					port_ss = s->server.clientPort;
 					foundFlag = 1;
 					printf("Found server for path %s\n", path);
+					sprintf(concatenatedstring, "Found server for path %s", path);
+					logmessage = concatenatedstring;
+					loggingfunction();
+
 					printf("IP: %s\n", ip_Address_ss);
+					sprintf(concatenatedstring, "IP: %s", ip_Address_ss);
+					logmessage = concatenatedstring;
+					loggingfunction();
+
 					printf("Port: %d\n", port_ss);
+					sprintf(concatenatedstring, "Port: %d", port_ss);
+					logmessage = concatenatedstring;
+					loggingfunction();
 				}
 
 				if (foundFlag == 1)
@@ -967,6 +1153,8 @@ void* handleClientInput(void* socketDesc)
 					if (send(sock, reply, strlen(reply), 0) < 0)
 					{
 						puts("Send failed");
+						logmessage = "Send failed";
+						loggingfunction();
 						return NULL;
 					}
 				}
@@ -977,6 +1165,8 @@ void* handleClientInput(void* socketDesc)
 					if (send(sock, reply, strlen(reply), 0) < 0)
 					{
 						puts("Send failed");
+						logmessage = "Send failed";
+						loggingfunction();
 						return NULL;
 					}
 				}
@@ -1023,6 +1213,9 @@ void* handleClientInput(void* socketDesc)
 				char ip_Address_ss[16];
 				int port_ss;
 				printf("Path: %s\n", path);
+				sprintf(concatenatedstring, "Path: %s", path);
+				logmessage = concatenatedstring;
+				loggingfunction();
 				PathToServerMap *s;
 				HASH_FIND_STR(serversByPath, path, s);
 				// Checking LRU Cache
@@ -1040,9 +1233,24 @@ void* handleClientInput(void* socketDesc)
 					port_ss = s->server.nmPort;
 					foundFlag = 1;
 					printf("Found server for path %s\n", path);
+					sprintf(concatenatedstring, "Found server for path %s", path);
+					logmessage = concatenatedstring;
+					loggingfunction();
+
 					printf("IP: %s\n", ip_Address_ss);
+					sprintf(concatenatedstring, "IP: %s", ip_Address_ss);
+					logmessage = concatenatedstring;
+					loggingfunction();
+
 					printf("Port: %d\n", port_ss);
+					sprintf(concatenatedstring, "Port: %d", port_ss);
+					logmessage = concatenatedstring;
+					loggingfunction();
+
 					printf("File Already Exists\n");
+					sprintf(concatenatedstring, "File Already Exists");
+					logmessage = concatenatedstring;
+					loggingfunction();
 				}
 				else
 				{
@@ -1050,8 +1258,19 @@ void* handleClientInput(void* socketDesc)
 					strcpy(ip_Address_ss, storageServers[0].ipAddress);
 					port_ss = storageServers[0].nmPort;
 					printf("It will be created in Storage Server 1\n");
+					sprintf(concatenatedstring, "It will be created in Storage Server 1");
+					logmessage = concatenatedstring;
+					loggingfunction();
+
 					printf("IP: %s\n", ip_Address_ss);
+					sprintf(concatenatedstring, "IP: %s", ip_Address_ss);
+					logmessage = concatenatedstring;
+					loggingfunction();
+
 					printf("Port: %d\n", port_ss);
+					sprintf(concatenatedstring, "Port: %d", port_ss);
+					logmessage = concatenatedstring;
+					loggingfunction();
 				}
 				if (foundFlag == 0)
 				{
@@ -1085,10 +1304,23 @@ void* handleClientInput(void* socketDesc)
 						memset(path2, '\0', sizeof(path2));
 						char* without_prefix = remove_prefix(path, ".");
 						printf("Without prefix: %s\n", without_prefix);
+						sprintf(concatenatedstring, "Without prefix: %s", without_prefix);
+						logmessage = concatenatedstring;
+						loggingfunction();
+
 						sprintf(path1, "./Backup0%s", without_prefix);
 						sprintf(path2, "./Backup1%s", without_prefix);
+
 						printf("Path1: %s\n", path1);
+						sprintf(concatenatedstring, "Path1: %s", path1);
+						logmessage = concatenatedstring;
+						loggingfunction();
+
 						printf("Path2: %s\n", path2);
+						sprintf(concatenatedstring, "Path2: %s", path2);
+						logmessage = concatenatedstring;
+						loggingfunction();
+
 
 						//now we create 3 threads to send the request to all the 3 storage servers
 						ThreadArgs* args1 = malloc(sizeof(ThreadArgs));
@@ -1205,8 +1437,19 @@ void* handleClientInput(void* socketDesc)
 					port_ss = s->server.nmPort;
 					foundFlag = 1;
 					printf("Found server for path %s\n", path);
+					sprintf(concatenatedstring, "Found server for path %s", path);
+					logmessage = concatenatedstring;
+					loggingfunction();
+
 					printf("IP: %s\n", ip_Address_ss);
+					sprintf(concatenatedstring, "IP: %s", ip_Address_ss);
+					logmessage = concatenatedstring;
+					loggingfunction();
+
 					printf("Port: %d\n", port_ss);
+					sprintf(concatenatedstring, "Port: %d", port_ss);
+					logmessage = concatenatedstring;
+					loggingfunction();
 				}
 				if (foundFlag == 1)
 				{
@@ -1263,6 +1506,8 @@ void* handleClientInput(void* socketDesc)
 					if (send(sock, reply, strlen(reply), 0) < 0)
 					{
 						puts("Send failed");
+						logmessage = "Send failed";
+						loggingfunction();
 						return NULL;
 					}
 				}
@@ -1271,14 +1516,23 @@ void* handleClientInput(void* socketDesc)
 			else if (strncmp(buffer_copy, "COPY", 4) == 0)
 			{
 				printf("COPY Started\n");
+				logmessage = "COPY Started";
+				loggingfunction();
 				char pathThird[1024];
 				extractPathThird(buffer_copy, pathThird, sizeof(pathThird));
 
 				printf("Path Third: %s\n", pathThird);
+				sprintf(concatenatedstring, "Path Third: %s", pathThird);
+				logmessage = concatenatedstring;
+				loggingfunction();
 
 				char ip_Address_ss[16];
 				int port_ss;
 				printf("Path: %s\n", path);
+				sprintf(concatenatedstring, "Path: %s", path);
+				logmessage = concatenatedstring;
+				loggingfunction();
+
 				PathToServerMap *s;
 				HASH_FIND_STR(serversByPath, path, s);
 				if (s != NULL)
@@ -1286,8 +1540,19 @@ void* handleClientInput(void* socketDesc)
 					strcpy(ip_Address_ss, s->server.ipAddress);
 					port_ss = s->server.ssPort_send;
 					printf("Found server for path %s\n", path);
+					sprintf(concatenatedstring, "Found server for path %s", path);
+					logmessage = concatenatedstring;
+					loggingfunction();
+
 					printf("IP: %s\n", ip_Address_ss);
+					sprintf(concatenatedstring, "IP: %s", ip_Address_ss);
+					logmessage = concatenatedstring;
+					loggingfunction();
+
 					printf("Port: %d\n", port_ss);
+					sprintf(concatenatedstring, "Port: %d", port_ss);
+					logmessage = concatenatedstring;
+					loggingfunction();
 				}
 
 				// char ip_Address_ss2[16];
@@ -1313,6 +1578,8 @@ void* handleClientInput(void* socketDesc)
 				if ((s1Sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 				{
 					perror("Socket creation for S1 failed");
+					logmessage = "Socket creation for S1 failed";
+					loggingfunction();
 					exit(EXIT_FAILURE);
 				}
 				s1Addr.sin_family = AF_INET;
@@ -1321,6 +1588,8 @@ void* handleClientInput(void* socketDesc)
 				if (connect(s1Sock, (struct sockaddr *)&s1Addr, sizeof(s1Addr)) < 0)
 				{
 					perror("Connection to S1 failed");
+					logmessage = "Connection to S1 failed";
+					loggingfunction();
 					close(s1Sock);
 					exit(EXIT_FAILURE);
 				}
@@ -1329,6 +1598,8 @@ void* handleClientInput(void* socketDesc)
 				if ((s2Sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 				{
 					perror("Socket creation for S2 failed");
+					logmessage = "Socket creation for S2 failed";
+					loggingfunction();
 					exit(EXIT_FAILURE);
 				}
 				s2Addr.sin_family = AF_INET;
@@ -1337,21 +1608,30 @@ void* handleClientInput(void* socketDesc)
 				if (connect(s2Sock, (struct sockaddr *)&s2Addr, sizeof(s2Addr)) < 0)
 				{
 					perror("Connection to S2 failed");
+					logmessage = "Connection to S2 failed";
+					loggingfunction();
 					close(s2Sock);
 					exit(EXIT_FAILURE);
 				}
 
 				printf("Sockets forming is started\n");
+				logmessage = "Sockets forming is started";
+				loggingfunction();
+
 
 				// Send read request to S1
 				send(s1Sock, path, strlen(path), 0);
 
 				printf("1 Socket Formed\n");
+				logmessage = "1 Socket Formed";
+				loggingfunction();
 
 				// Send write request to S2
 				send(s2Sock, pathThird, strlen(pathThird), 0);
 
 				printf("Sockets Formed For Copying\n");
+				logmessage = "Sockets Formed For Copying";
+				loggingfunction();
 
 				// Transfer data from S1 to S2 through NM
 				while (1)
@@ -1360,43 +1640,66 @@ void* handleClientInput(void* socketDesc)
 					if (bytesRead > 0)
 					{
 						printf("Sending\n");
+						logmessage = "Sending";
+						loggingfunction();
 						ssize_t bytesSent = send(s2Sock, buffer, bytesRead, 0);
 						if (bytesSent < 0)
 						{
 							perror("Failed to send data to S2");
+							logmessage = "Failed to send data to S2";
+							loggingfunction();
 							break;
 						}
 						printf("Sent %ld bytes\n", bytesSent);
+						sprintf(concatenatedstring, "Sent %ld bytes", bytesSent);
+						logmessage = concatenatedstring;
+						loggingfunction();
 					}
 					else if (bytesRead == 0)
 					{
 						printf("Connection closed by peer\n");
+						logmessage = "Connection closed by peer";
+						loggingfunction();
 						break;
 					}
 					else
 					{
 						perror("recv failed");
+						logmessage = "recv failed";
+						loggingfunction();
 						break;
 					}
 					printf("Next Iter\n");
+					logmessage = "Next Iter";
+					loggingfunction();
 				}
 
 				printf("Data Transfer Complete\n");
+				logmessage = "Data Transfer Complete";
+				loggingfunction();
 
 				int numberToSend = 11;
 				ssize_t bytesSent_1 = send(sock, &numberToSend, sizeof(numberToSend), 0);
 				if (bytesSent_1 < 0)
 				{
 					perror("Failed to send data");
+					logmessage = "Failed to send data";
+					loggingfunction();
 				}
 
 				printf("Data Transfer Complete\n");
+				logmessage = "Data Transfer Complete";
+				loggingfunction();
 				close(s1Sock);
 				printf("Socket Closed\n");
+				logmessage = "Socket Closed";
+				loggingfunction();
 
 				// Close s2Sock to signal the Receiver
 				close(s2Sock);
 				printf("Socket Closed\n");
+				logmessage = "Socket Closed";
+				loggingfunction();
 			}
 			else if (strncmp(buffer_copy, "LISTALL", 7) == 0)
 			{
@@ -1407,6 +1710,9 @@ void* handleClientInput(void* socketDesc)
 				strcat(response, "*");
 
 				printf("Total Number of Storage Server: %d\n", storageServerCount);
+				sprintf(concatenatedstring, "Total Number of Storage Server: %d", storageServerCount);
+				logmessage = concatenatedstring;
+				loggingfunction();
 
 				for (int i = 0; i < storageServerCount; i++)
 				{
@@ -1423,6 +1729,8 @@ void* handleClientInput(void* socketDesc)
 				if (send(sock, response, strlen(response), 0) < 0)
 				{
 					puts("Send failed");
+					logmessage = "Send failed";
+					loggingfunction();
 					return NULL;
 				}
 			}
@@ -1430,6 +1738,9 @@ void* handleClientInput(void* socketDesc)
 		if (readSize < 0)
 		{
 			perror("recv failed");
+			logmessage = "recv failed";
+			loggingfunction();
+
 			close(sock);
 			free(socketDesc);
 			return NULL;
@@ -1437,6 +1748,9 @@ void* handleClientInput(void* socketDesc)
 		else if (readSize == 0)
 		{
 			printf("Client disconnected\n");
+			logmessage = "Client disconnected";
+			loggingfunction();
+
 			break;
 		}
 	}
@@ -1454,6 +1768,8 @@ void *handleClientRequest()
 	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
 		perror("socket failed");
+		logmessage = "socket failed";
+		loggingfunction();
 		exit(EXIT_FAILURE);
 	}
 
@@ -1464,25 +1780,36 @@ void *handleClientRequest()
 	if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
 	{
 		perror("bind failed");
+		logmessage = "bind failed";
+		loggingfunction();
+
 		exit(EXIT_FAILURE);
 	}
 
 	if (listen(server_fd, MAX_CLIENTS) < 0)
 	{
 		perror("listen");
+		logmessage = "listen";
+		loggingfunction();
 		exit(EXIT_FAILURE);
 	}
 
 	printf("Naming Server started listening...\n");
+	logmessage = "Naming Server started listening...";
+	loggingfunction();
 
 	while (1)
 	{
 		if ((clientSocket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
 		{
 			perror("accept");
+			logmessage = "accept";
+			loggingfunction();
 			continue;
 		}
 		printf("Client connected...\n");
+		logmessage = "Client connected...";
+		loggingfunction();
 
 		int *new_sock = malloc(sizeof(int));
 		*new_sock = clientSocket;
@@ -1491,6 +1818,9 @@ void *handleClientRequest()
 		if (pthread_create(&client_thread, NULL, handleClientInput, (void *)new_sock) < 0)
 		{
 			perror("could not create thread");
+			logmessage = "could not create thread";
+			loggingfunction();
+
 			free(new_sock);
 		}
 
@@ -1528,6 +1858,8 @@ void sendCommandToServer(const char *serverIP, int port, const char *command)
 	if (sock == -1)
 	{
 		printf("Could not create socket");
+		logmessage = "Could not create socket";
+		loggingfunction();
 	}
 
 	server.sin_addr.s_addr = inet_addr(serverIP);
@@ -1538,6 +1870,9 @@ void sendCommandToServer(const char *serverIP, int port, const char *command)
 	if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0)
 	{
 		perror("connect failed. Error");
+		logmessage = "connect failed. Error";
+		loggingfunction();
+
 		return;
 	}
 
@@ -1545,6 +1880,9 @@ void sendCommandToServer(const char *serverIP, int port, const char *command)
 	if (send(sock, command, strlen(command), 0) < 0)
 	{
 		puts("Send failed");
+		logmessage = "Send failed";
+		loggingfunction();
+
 		return;
 	}
 
@@ -1552,10 +1890,16 @@ void sendCommandToServer(const char *serverIP, int port, const char *command)
 	if (recv(sock, server_reply, 2000, 0) < 0)
 	{
 		puts("recv failed");
+		logmessage = "recv failed";
+		loggingfunction();
 	}
 
 	puts("Server reply :");
 	puts(server_reply);
+	char concatenatedstring[1024];
+	sprintf(concatenatedstring, "Server reply : %s", server_reply);
+	logmessage = concatenatedstring;
+	loggingfunction();
 
 	close(sock);
 }
@@ -1565,6 +1909,8 @@ void createFileOrDirectory(const char *serverIP, int port, const char *path, int
 	char command[1024];
 	sprintf(command, "CREATE %s %d", path, isDirectory);
 	sendCommandToServer(serverIP, port, command);
+	logmessage = command;
+	loggingfunction();
 }
 
 void deleteFileOrDirectory(const char *serverIP, int port, const char *path)
@@ -1572,6 +1918,8 @@ void deleteFileOrDirectory(const char *serverIP, int port, const char *path)
 	char command[1024];
 	sprintf(command, "DELETE %s", path);
 	sendCommandToServer(serverIP, port, command);
+	logmessage = command;
+	loggingfunction();
 }
 
 void copyFileOrDirectory(const char *sourceIP,
@@ -1585,6 +1933,8 @@ void copyFileOrDirectory(const char *sourceIP,
 	sprintf(
 		command, "COPY %s %s:%d %s", sourcePath, destinationIP, destinationPort, destinationPath);
 	sendCommandToServer(sourceIP, sourcePort, command);
+	logmessage = command;
+	loggingfunction();
 }
 
 int main()

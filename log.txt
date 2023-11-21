@@ -1,39 +1,34 @@
-Tue Nov 21 02:26:19 2023: Initializing Naming Server...
-Tue Nov 21 02:26:19 2023: Naming Server started listening...
-Tue Nov 21 02:26:21 2023: Received storage server 1 details:
-Tue Nov 21 02:26:21 2023: IP Address: 127.0.0.2
-Tue Nov 21 02:26:21 2023: NM Port: 5000
-Tue Nov 21 02:26:21 2023: Client Port: 4000
-Tue Nov 21 02:26:21 2023: NUM PATHS: 11
-Tue Nov 21 02:26:21 2023: Accessible Paths: ./src
-Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/q
-Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/jainit
-Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/NamingServer.c
-Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/helloWorld.txt
-Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/2d
-Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/2d/1d
-Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/2d/1d/1
-Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/2d/1d/11
-Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/2d/ct_new
-Tue Nov 21 02:26:21 2023: Accessible Paths: ./src/yo
-Tue Nov 21 02:26:21 2023: Registration Successful
-Tue Nov 21 02:26:24 2023: Client connected...
-Tue Nov 21 02:26:46 2023: Received command: COPY ./src/jainit ./src/1/2/3
-
-Tue Nov 21 02:26:46 2023: Token 0: COPY
-Tue Nov 21 02:26:46 2023: Token 1: ./src/jainit
-Tue Nov 21 02:26:46 2023: Token 2: ./src/1/2/3
-Tue Nov 21 02:26:46 2023: Source path: ./src/jainit
-Tue Nov 21 02:26:46 2023: Source path: ./src/jainit
-Tue Nov 21 02:26:46 2023: Destination path: ./src/1/2/3
-Tue Nov 21 02:26:46 2023: length of source path: 12
-Tue Nov 21 02:26:46 2023: length of destination path: 11
-Tue Nov 21 02:26:46 2023: Storage server 0
-Tue Nov 21 02:26:46 2023: Path 0: ./src
-Tue Nov 21 02:26:46 2023: length of path: 5
-Tue Nov 21 02:26:46 2023: Path 1: ./src/q
-Tue Nov 21 02:26:46 2023: length of path: 7
-Tue Nov 21 02:26:46 2023: Path 2: ./src/jainit
-Tue Nov 21 02:26:46 2023: length of path: 12
-Tue Nov 21 02:26:46 2023: Found source path
-Tue Nov 21 02:26:46 2023: Found flagasdfasdf: 1
+Tue Nov 21 13:13:37 2023: Initializing Naming Server...
+Tue Nov 21 13:13:37 2023: Naming Server started listening...
+Tue Nov 21 13:13:41 2023: Received storage server 1 details:
+Tue Nov 21 13:13:41 2023: IP Address: 127.0.0.2
+Tue Nov 21 13:13:41 2023: NM Port: 51749
+Tue Nov 21 13:13:41 2023: Client Port: 47001
+Tue Nov 21 13:13:41 2023: SS Port: 40465
+Tue Nov 21 13:13:41 2023: SS Port: 46009
+Tue Nov 21 13:13:41 2023: Accessible Paths: ./src
+Tue Nov 21 13:13:41 2023: Accessible Paths: ./src/folder1
+Tue Nov 21 13:13:41 2023: Accessible Paths: ./src/folder1/nit
+Tue Nov 21 13:13:41 2023: Accessible Paths: ./src/s
+Tue Nov 21 13:13:41 2023: Accessible Paths: ./src/abcd
+Tue Nov 21 13:13:41 2023: Accessible Paths: ./src/abcd/jainit
+Tue Nov 21 13:13:41 2023: Registration Successful
+Tue Nov 21 13:13:45 2023: Client connected...
+Tue Nov 21 13:14:13 2023: Received command: READ ./src/abcd/jainit
+Tue Nov 21 13:14:13 2023: Command: READ ./src/abcd/jainit
+Tue Nov 21 13:14:13 2023: PATH : ./src/abcd/jainit
+Tue Nov 21 13:14:13 2023: PATH : ./src/abcd/jainit
+Tue Nov 21 13:14:13 2023: Found server for path ./src/abcd/jainit
+Tue Nov 21 13:14:13 2023: IP: 127.0.0.2
+Tue Nov 21 13:14:13 2023: Port: 47001
+Tue Nov 21 13:14:26 2023: Received command: WRITE ./src/abcd/jainit hello
+Tue Nov 21 13:14:26 2023: Command: WRITE ./src/abcd/jainit hello
+Tue Nov 21 13:14:26 2023: PATH : ./src/abcd/jainit
+Tue Nov 21 13:14:26 2023: PATH : ./src/abcd/jainit
+Tue Nov 21 13:14:26 2023: Found server for path ./src/abcd/jainit
+Tue Nov 21 13:14:26 2023: IP: 127.0.0.2
+Tue Nov 21 13:14:26 2023: Port: 47001
+Tue Nov 21 13:14:42 2023: Received command: READ ./src/abcd/jainitt hello
+Tue Nov 21 13:14:42 2023: Command: READ ./src/abcd/jainitt hello
+Tue Nov 21 13:14:42 2023: PATH : ./src/abcd/jainitt
+Tue Nov 21 13:14:42 2023: PATH : ./src/abcd/jainitt
