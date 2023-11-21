@@ -1093,6 +1093,26 @@ void* handleClientInput(void* socketDesc)
 			// 	token = strtok(NULL, " ");
 			// }
 
+			// sending an acknowledgment to the client
+			char ack[1024];
+			memset(ack, '\0', sizeof(ack));
+			strcpy(ack, "ACK");
+			time_t t;
+			time(&t);
+			printf("Sending acknowledgement to client at %s for command %s\n", ctime(&t), buffer);
+			sprintf(concatenatedstring, "Sending acknowledgement to client at %s for command %s",
+					ctime(&t), buffer);
+			logmessage = concatenatedstring;
+			loggingfunction();
+
+			if(send(sock, ack, strlen(ack), 0) < 0)
+			{
+				puts("Send failed");
+				logmessage = "Send failed";
+				loggingfunction();
+				return NULL;
+			}
+
 			char path[1024];
 			memset(path, '\0', sizeof(path));
 			extractPath(buffer_copy, path, sizeof(path));
