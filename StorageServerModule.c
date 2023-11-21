@@ -1281,12 +1281,20 @@ void* executeSSRequestRecv(void * arg) {
     close(filefd);
 
 	char unzippedDir[PATH_MAX];
-	snprintf(unzippedDir, sizeof(unzippedDir), "%s_unzipped", target);
+	snprintf(unzippedDir, sizeof(unzippedDir), "%s_copy", path);
+
+	printf("Unzipping to %s\n", unzippedDir);
 
 	// Prepare unzip command
 	char unzipCommand[PATH_MAX + 50];
 	snprintf(unzipCommand, sizeof(unzipCommand), "unzip '%s' -d '%s' > /dev/null 2>&1", path, unzippedDir);
-    return NULL;
+    // Execute the unzip command
+    int result = system(unzipCommand);
+
+	printf("Unzipping complete\n");
+
+
+	return NULL;
 }
 
 void* executeSSRequest(void* arg)
