@@ -10,7 +10,43 @@
 #define NAMING_SERVER_PORT 8001
 #define IP_ADDRESS "127.0.0.1"
 
+#define TIMEOUT 3
+
+time_t start;
+
 char request[1000]; // global variable to take input of from client
+
+int waitforAck(int clientSocket)
+{
+    time_t end;
+    char buffer[1024];
+    memset(buffer, '\0', sizeof(buffer));
+    ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+    if(bytesRead == -1)
+    {
+        perror("recv failed");
+    }
+    else if(bytesRead == 0)
+    {
+        printf("Connection closed by peer\n");
+    }
+    else
+    {
+        time(&end);
+        double timeTaken = end - start;
+        // printf("Time taken: %lf\n", timeTaken);
+        if (timeTaken > TIMEOUT)
+        {
+            printf("Timeout\n");
+            return 0;
+        }
+        else
+        {
+            printf("Ack received\n");
+            return 1;
+        }
+    }
+}
 
 // read function when client requests to read a file
 void clientRead(int clientSocket)
@@ -18,6 +54,14 @@ void clientRead(int clientSocket)
 
     // send the request to the Naming Server
     send(clientSocket, request, strlen(request), 0);
+
+    time(&start);
+    int ack = waitforAck(clientSocket);
+    if (ack == 0)
+    {
+        printf("Acknowledge not received\n");
+        return;
+    }
 
     // receive the response from the Naming Server
     char response[10000];
@@ -85,6 +129,14 @@ void clientWrite(int clientSocket)
 {
     // send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
+
+    time(&start);
+    int ack = waitforAck(clientSocket);
+    if (ack == 0)
+    {
+        printf("Acknowledge not received\n");
+        return;
+    }
 
     // receive response from Naming Server
     char response[10000];
@@ -155,6 +207,14 @@ void clientGetSize(int clientSocket)
     // strcpy(request, "COPY ./src/hello ./src/jainit\n");
     send(clientSocket, request, strlen(request), 0);
 
+    time(&start);
+    int ack = waitforAck(clientSocket);
+    if (ack == 0)
+    {
+        printf("Acknowledge not received\n");
+        return;
+    }
+
     // receive response from Naming Server
     char response[10000];
     memset(response, '\0', sizeof(response));
@@ -223,6 +283,14 @@ void clientCreate(int clientSocket)
     // send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
 
+    time(&start);
+    int ack = waitforAck(clientSocket);
+    if (ack == 0)
+    {
+        printf("Acknowledge not received\n");
+        return;
+    }
+
     char response[10000];
     memset(response, '\0',sizeof(response));
     recv(clientSocket, response, sizeof(response), 0);
@@ -253,6 +321,14 @@ void clientDelete(int clientSocket)
 {
     // send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
+
+    time(&start);
+    int ack = waitforAck(clientSocket);
+    if (ack == 0)
+    {
+        printf("Acknowledge not received\n");
+        return;
+    }
 
     char response[10000];
     memset(response, '\0',sizeof(response));
@@ -289,6 +365,14 @@ void clientCopy(int clientSocket)
     // send request to Naming Server
     // strcpy(request, "COPY ./src/hello ./src/jainit\n");
     send(clientSocket, request, strlen(request), 0);
+
+    time(&start);
+    int ack = waitforAck(clientSocket);
+    if (ack == 0)
+    {
+        printf("Acknowledge not received\n");
+        return;
+    }
 
     char response[10000];
     memset(response, '\0',sizeof(response));
@@ -339,6 +423,14 @@ void clientListAll(int clientSocket)
 {
     // Send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
+
+    time(&start);
+    int ack = waitforAck(clientSocket);
+    if (ack == 0)
+    {
+        printf("Acknowledge not received\n");
+        return;
+    }
 
     char response[40960];
     memset(response, '\0', sizeof(response));
