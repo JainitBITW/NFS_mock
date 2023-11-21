@@ -24,12 +24,14 @@
 //     char fileTree[1000]; // Placeholder for file tree representation
 // } FileSystem;
 
+
 typedef struct StorageServer
 {
 	char ipAddress[16]; // IPv4 Address
 	int nmPort; // Port for NM Connection
 	int clientPort; // Port for Client Connection
-	int ssPort; // Port for SS Connection
+	int ssPort_send; // Port for SS Connection
+	int ssPort_recv; // Port for SS Connection
 	int numPaths;
 	char accessiblePaths[500][100]; // List of accessible paths
 	// Other metadata as needed
@@ -176,6 +178,8 @@ void* handleStorageServer(void* socketDesc)
 			printf("IP Address: %s\n", newServer.ipAddress);
 			printf("NM Port: %d\n", newServer.nmPort);
 			printf("Client Port: %d\n", newServer.clientPort);
+			printf("SS Port: %d\n", newServer.ssPort_send);
+			printf("SS Port: %d\n", newServer.ssPort_recv);
 			// printf("Accessible Paths: %s\n", newServer.accessiblePaths);
 			printf("NUM PATHS: %d\n", newServer.numPaths);
 			for(int path_no = 0; path_no < newServer.numPaths; path_no++)
@@ -391,6 +395,102 @@ void removeWhitespace(char* inputString)
 	inputString[writeIndex] = '\0';
 }
 
+// Function to remove leading and trailing whitespaces and reduce multiple spaces to a single space
+void strip(char *str) {
+    int start = 0, end = strlen(str) - 1;
+
+    // Remove leading whitespaces
+    while (str[start] && isspace((unsigned char) str[start])) {
+        start++;
+    }
+
+    // Remove trailing whitespaces
+    while (end >= start && isspace((unsigned char) str[end])) {
+        end--;
+    }
+
+    // Condense multiple spaces and shift characters
+    int i = 0, j = start;
+    int inSpace = 0;
+    while (j <= end) {
+        if (isspace((unsigned char) str[j])) {
+            if (!inSpace) {
+                str[i++] = ' '; // Add one space and set flag
+                inSpace = 1;
+            }
+        } else {
+            str[i++] = str[j];
+            inSpace = 0; // Reset space flag
+        }
+        j++;
+    }
+    str[i] = '\0'; // Null-terminate the string
+}
+
+
+void extractPath(const char *input, char *path, size_t pathSize) {
+    // Find the first space
+    const char *firstSpace = strchr(input, ' ');
+    if (firstSpace == NULL) {
+        printf("No spaces found.\n");
+        return;
+    }
+
+    // Find the second space or the end of the string
+    const char *secondSpace = strchr(firstSpace + 1, ' ');
+    if (secondSpace == NULL) {
+        // If only one space found, use the end of the string
+        secondSpace = input + strlen(input);
+    }
+
+    // Calculate the length of the path
+    size_t pathLength = secondSpace - firstSpace - 1;
+    if (pathLength >= pathSize) {
+        printf("Path buffer is too small.\n");
+        return;
+    }
+
+    // Copy the path into the provided buffer
+    strncpy(path, firstSpace + 1, pathLength);
+    path[pathLength] = '\0'; // Null-terminate the string
+}
+
+void extractPathThird(const char *input, char *path, size_t pathSize) {
+    // Find the first space
+    const char *firstSpace = strchr(input, ' ');
+    if (firstSpace == NULL) {
+        printf("No spaces found.\n");
+        return;
+    }
+
+    // Find the second space
+    const char *secondSpace = strchr(firstSpace + 1, ' ');
+    if (secondSpace == NULL) {
+        printf("Only one space found.\n");
+        return;
+    }
+
+    // Find the third space or the end of the string
+    const char *thirdSpace = strchr(secondSpace + 1, ' ');
+    if (thirdSpace == NULL) {
+        // If only two spaces found, use the end of the string
+        thirdSpace = input + strlen(input);
+    }
+
+    // Calculate the length of the path
+    size_t pathLength = thirdSpace - secondSpace - 1;
+    if (pathLength >= pathSize) {
+        printf("Path buffer is too small.\n");
+        return;
+    }
+
+    // Copy the path into the provided buffer
+    strncpy(path, secondSpace + 1, pathLength);
+    path[pathLength] = '\0'; // Null-terminate the string
+}
+
+
+
 void* handleClientInput(void* socketDesc)
 {
 	int sock = *(int*)socketDesc;
@@ -401,41 +501,44 @@ void* handleClientInput(void* socketDesc)
 	{
 		if((readSize = recv(sock, buffer, sizeof(buffer), 0)) > 0)
 		{
-			buffer[readSize] = '\0';
+			strip(buffer);
 			char buffer_copy[1024];
 			strcpy(buffer_copy, buffer);
 			printf("Received command: %s\n", buffer);
 
-			// handling the command from client
+			// // handling the command from client
 
-			//  tokenising the command
-			char* tokenArray[10];
-			char* token = strtok(buffer, " ");
-			int i = 0;
-			while(token != NULL)
-			{
-				removeWhitespace(token);
-				tokenArray[i++] = token;
-				token = strtok(NULL, " ");
-			}
+			// //  tokenising the command
+			// char* tokenArray[10];
+			// char* token = strtok(buffer, " ");
+			// int i = 0;
+			// while(token != NULL)
+			// {
+			// 	removeWhitespace(token);
+			// 	tokenArray[i++] = token;
+			// 	token = strtok(NULL, " ");
+			// }
+
+			char path[1024];
+			extractPath(buffer_copy, path, sizeof(path));
 
 			//  checking the command
-			if(strcmp(tokenArray[0], "READ") == 0 || strcmp(tokenArray[0], "WRITE") == 0 ||
-			   strcmp(tokenArray[0], "GETSIZE") == 0)
+			if(strncmp(buffer_copy, "READ",4) == 0 || strncmp(buffer_copy, "WRITE",5) == 0 ||
+			   strncmp(buffer_copy, "GETSIZE",7) == 0)
 			{
-				printf("Command: %s\n", tokenArray[0]);
+				printf("Command: %s\n", buffer_copy);
+				printf("PATH : %s\n",path);
 				// finding out the storage server for the file
 				// path is tokenArray[1]
-				char path[1024];
-				strcpy(path, tokenArray[1]);
-				// strip the path of white spaces
-				int len = strlen(path);
-				if(isspace(path[len - 1]))
-				{
-					path[len - 1] = '\0';
-				}
+				// strcpy(path, tokenArray[1]);
+				// // strip the path of white spaces
+				// int len = strlen(path);
+				// if(isspace(path[len - 1]))
+				// {
+				// 	path[len - 1] = '\0';
+				// }
 
-				printf("Path: %s\n", path);
+				// printf("Path: %s\n", path);
 
 				// compare the paths of all storage servers from storageServers array
 				// if the path is found in the accessiblePaths of a storage server
@@ -479,50 +582,50 @@ void* handleClientInput(void* socketDesc)
 					}
 				}
 			}
-			else if(strcmp(tokenArray[0], "CREATE") == 0)
+			else if(strncmp(buffer_copy, "CREATE", 6) == 0)
 			{
-				char path[1024];
-				strcpy(path, tokenArray[1]);
-				// strip the path of white spaces
-				int len = strlen(path);
-				if(isspace(path[len - 1]))
-				{
-					path[len - 1] = '\0';
-				}
+				// char path[1024];
+				// strcpy(path, tokenArray[1]);
+				// // strip the path of white spaces
+				// int len = strlen(path);
+				// if(isspace(path[len - 1]))
+				// {
+				// 	path[len - 1] = '\0';
+				// }
 
-				// find out the path to be found
-				char path_copy[1024];
-				strcpy(path_copy, path);
-				int backslashCount = 0;
-				for(int i = 0; i < strlen(path_copy); i++)
-				{
-					if(path_copy[i] == '/')
-					{
-						backslashCount++;
-					}
-				}
+				// // find out the path to be found
+				// char path_copy[1024];
+				// strcpy(path_copy, path);
+				// int backslashCount = 0;
+				// for(int i = 0; i < strlen(path_copy); i++)
+				// {
+				// 	if(path_copy[i] == '/')
+				// 	{
+				// 		backslashCount++;
+				// 	}
+				// }
 
-				// if the last character is backslash, then remove it
-				int path_len = strlen(path_copy);
-				if(path_copy[path_len - 1] == '/')
-				{
-					path_copy[path_len - 1] = '\0';
-					backslashCount = backslashCount - 1;
-				}
+				// // if the last character is backslash, then remove it
+				// int path_len = strlen(path_copy);
+				// if(path_copy[path_len - 1] == '/')
+				// {
+				// 	path_copy[path_len - 1] = '\0';
+				// 	backslashCount = backslashCount - 1;
+				// }
 
-				if(backslashCount > 1)
-				{
-					char* lastSlash = strrchr(path_copy, '/');
-					*lastSlash = '\0';
-				}
+				// if(backslashCount > 1)
+				// {
+				// 	char* lastSlash = strrchr(path_copy, '/');
+				// 	*lastSlash = '\0';
+				// }
 
 				// find the storage server for the path
 				int foundFlag = 0;
 				char ip_Address_ss[16];
 				int port_ss;
-				printf("Path: %s\n", path_copy);
+				printf("Path: %s\n", path);
 				PathToServerMap* s;
-				HASH_FIND_STR(serversByPath, path_copy, s);
+				HASH_FIND_STR(serversByPath, path, s);
 				if(s != NULL)
 				{
 					strcpy(ip_Address_ss, s->server.ipAddress);
@@ -531,17 +634,18 @@ void* handleClientInput(void* socketDesc)
 					printf("Found server for path %s\n", path);
 					printf("IP: %s\n", ip_Address_ss);
 					printf("Port: %d\n", port_ss);
+					printf("File Already Exists\n");
 				}
 				else
 				{
-					foundFlag = 1;
+					foundFlag = 0;
 					strcpy(ip_Address_ss, storageServers[0].ipAddress);
 					port_ss = storageServers[0].nmPort;
 					printf("It will be created in Storage Server 1\n");
 					printf("IP: %s\n", ip_Address_ss);
 					printf("Port: %d\n", port_ss);
 				}
-				if(foundFlag == 1)
+				if(foundFlag == 0)
 				{
 					// connect to the storage server port and ip address
 					int storageserversocket;
@@ -581,6 +685,25 @@ void* handleClientInput(void* socketDesc)
 						puts("recv failed");
 					}
 
+					printf("Reply received from storage server: %s\n", storageserverreply);
+
+					// Its its not -1
+					if(strcmp(storageserverreply, "-1") != 0)
+					{
+						// Add the path to the storage server
+						strcpy(storageServers[0].accessiblePaths[storageServers[0].numPaths], path);
+						storageServers[0].numPaths++;
+
+						// Add the path to the storage server
+						PathToServerMap* s = malloc(sizeof(PathToServerMap));
+						strcpy(s->path, path);
+
+						// Copy the newServer data into the hash table entry
+						s->server = storageServers[0]; // Direct copy of the server
+
+						HASH_ADD_STR(serversByPath, path, s);
+					}
+
 					// Send back to client
 					if(send(sock, storageserverreply, strlen(storageserverreply), 0) < 0)
 					{
@@ -588,23 +711,19 @@ void* handleClientInput(void* socketDesc)
 						return NULL;
 					}
 				}
-				else if(foundFlag == 0)
-				{
-				}
 
-				update_list_of_accessiblepaths(0);
+				// update_list_of_accessiblepaths(0);
 			}
-			else if(strcmp(tokenArray[0], "DELETE") == 0)
+			else if(strncmp(buffer_copy, "DELETE", 6) == 0)
 			{
-				// finding out the storage server for the file
-				char path[1024];
-				strcpy(path, tokenArray[1]);
-				// strip the path of white spaces
-				int len = strlen(path);
-				if(isspace(path[len - 1]))
-				{
-					path[len - 1] = '\0';
-				}
+				// // finding out the storage server for the file
+
+				// // strip the path of white spaces
+				// int len = strlen(path);
+				// if(isspace(path[len - 1]))
+				// {
+				// 	path[len - 1] = '\0';
+				// }
 
 				// find the storage server for the path
 				int foundFlag = 0;
@@ -678,215 +797,133 @@ void* handleClientInput(void* socketDesc)
 						return NULL;
 					}
 				}
-				update_list_of_accessiblepaths(0);
+				// update_list_of_accessiblepaths(0);
 			}
-			else if(strcmp(tokenArray[0], "COPY") == 0)
+			else if(strncmp(buffer_copy, "COPY", 4) == 0)
 			{
-				for(int i = 0; i < 3; i++)
-				{
-					printf("Token %d: %s\n", i, tokenArray[i]);
-				}
-				// finding out the storage server for the file
-				char sourcePath[1024] = {'\0'};
-				strcpy(sourcePath, tokenArray[1]);
-				printf("Source path: %s\n", sourcePath);
-				char destinationPath[1024] = {'\0'};
-				strcpy(destinationPath, tokenArray[2]);
-				PathToServerMap* source;
-				PathToServerMap* destination;
+				printf("COPY Started\n");
+				char pathThird[1024];
+				extractPathThird(buffer_copy, pathThird, sizeof(pathThird));
+
+				printf("Path Third: %s\n", pathThird);
+
+
 				char ip_Address_ss[16];
 				int port_ss;
-				if(isspace(sourcePath[strlen(sourcePath) - 1]))
-				{
-					sourcePath[strlen(sourcePath) - 1] = '\0';
-				}
-
-				if(isspace(destinationPath[strlen(destinationPath) - 1]))
-				{
-					destinationPath[strlen(destinationPath) - 1] = '\0';
-				}
-
-				int foundFlag = 0;
+				printf("Path: %s\n", path);
 				PathToServerMap* s;
-				printf("Source path: %s\n", sourcePath);
-				printf("Destination path: %s\n", destinationPath);
-				printf("length of source path: %d\n", strlen(sourcePath));
-				printf("length of destination path: %d\n", strlen(destinationPath));
-				printf("Total Number of Storage Server: %d\n",storageServerCount);
-				for(int i = 0; i < storageServerCount; i++)
+				HASH_FIND_STR(serversByPath, path, s);
+				if(s != NULL)
 				{
-					printf("Storage server %d\n", i);
-					for(int j = 0; j < storageServers[i].numPaths; j++)
-					{
-						printf("Path %d: %s\n", j, storageServers[i].accessiblePaths[j]);
-						printf("length of path: %d\n",
-							   strlen(storageServers[i].accessiblePaths[j]));
-						if(strncmp(storageServers[i].accessiblePaths[j],
-								   sourcePath,
-								   strlen(sourcePath)) == 0)
-						{
-							printf("Found source path\n");
-							source = malloc(sizeof(PathToServerMap));
-							strcpy(source->path, storageServers[i].accessiblePaths[j]);
-							source->server = storageServers[i];
-
-							foundFlag = 1;
-							break;
-						}
-						if(foundFlag == 1)
-						{
-							break;
-						}
-					}
-				}
-				// HASH_FIND_STR(serversByPath, sourcePath, source);
-				// if(s != NULL)
-				// {
-				// 	strcpy(ip_Address_ss, s->server.ipAddress);
-				// 	port_ss = s->server.ssPort;
-				// 	foundFlag = 1;
-				// 	printf("Found server for path %s\n", sourcePath);
-				// 	printf("IP: %s\n", ip_Address_ss);
-				// 	printf("Port: %d\n", port_ss);
-				// }
-				printf("Found flagasdfasdf: %d\n", foundFlag);
-
-				if(foundFlag == 0)
-				{
-					printf("Source path not found lol \n");
-					return NULL;
+					strcpy(ip_Address_ss, s->server.ipAddress);
+					port_ss = s->server.ssPort_send;
+					printf("Found server for path %s\n", path);
+					printf("IP: %s\n", ip_Address_ss);
+					printf("Port: %d\n", port_ss);
 				}
 
-				foundFlag = 0;
-				// HASH_FIND_STR(serversByPath, destinationPath, destination);
-				// if(s != NULL)
+				// char ip_Address_ss2[16];
+				// int port_ss2;
+				// printf("Path: %s\n", pathThird);
+				// PathToServerMap* s2;
+				// HASH_FIND_STR(serversByPath, pathThird, s1);
+				// if(s2 != NULL)
 				// {
-				//     strcpy(ip_Address_ss, s->server.ipAddress);
-				//     port_ss = s->server.ssPort;
-				//     foundFlag = 1;
-				//     printf("Found server for path %s\n", destinationPath);
-				//     printf("IP: %s\n", ip_Address_ss);
-				//     printf("Port: %d\n", port_ss);
+				// 	strcpy(ip_Address_ss2, s2->server.ipAddress);
+				// 	port_ss2 = s2->server.nmPort;
+				// 	printf("Found server for path %s\n", pathThird);
+				// 	printf("IP: %s\n", ip_Address_ss2);
+				// 	printf("Port: %d\n", port_ss2);
 				// }
-				for(int i = 0; i < storageServerCount; i++)
-				{
-					// printf("Storage server %d\n", i);
-					// printf("Number of paths: %d\n", storageServers[i].numPaths);
-					for(int j = 0; j < storageServers[i].numPaths; j++)
-					{
-						// printf("Path %d: %s\n", j, storageServers[i].accessiblePaths[j]);
-						if(strcmp(storageServers[i].accessiblePaths[j], destinationPath) == 0)
-						{
-							// If path is in accessiblePaths of storageServer
-							// send read request to that storage server
-							printf("Found destination path\n");
-							destination = malloc(sizeof(PathToServerMap));
-							strcpy(destination->path, storageServers[i].accessiblePaths[j]);
-							destination->server = storageServers[i];
 
-							foundFlag = 1;
-							printf("Found server for path %s\n", destinationPath);
+
+
+				int s1Sock, s2Sock;
+				struct sockaddr_in s1Addr, s2Addr;
+				char buffer[1024];
+				ssize_t bytesRead, bytesSent;
+
+				// Create and connect socket to S1
+				if ((s1Sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+					perror("Socket creation for S1 failed");
+					exit(EXIT_FAILURE);
+				}
+				s1Addr.sin_family = AF_INET;
+				s1Addr.sin_port = htons(port_ss);
+				s1Addr.sin_addr.s_addr = inet_addr(ip_Address_ss);
+				if (connect(s1Sock, (struct sockaddr *)&s1Addr, sizeof(s1Addr)) < 0) {
+					perror("Connection to S1 failed");
+					close(s1Sock);
+					exit(EXIT_FAILURE);
+				}
+
+				// Create and connect socket to S2
+				if ((s2Sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+					perror("Socket creation for S2 failed");
+					exit(EXIT_FAILURE);
+				}
+				s2Addr.sin_family = AF_INET;
+				s2Addr.sin_port = htons(storageServers[0].ssPort_recv);
+				s2Addr.sin_addr.s_addr = inet_addr(storageServers[0].ipAddress);
+				if (connect(s2Sock, (struct sockaddr *)&s2Addr, sizeof(s2Addr)) < 0) {
+					perror("Connection to S2 failed");
+					close(s2Sock);
+					exit(EXIT_FAILURE);
+				}
+
+				printf("Sockets forming is started\n");
+
+				// Send read request to S1
+				send(s1Sock, path, strlen(path), 0);
+
+				printf("1 Socket Formed\n");
+
+				// Send write request to S2
+				send(s2Sock, pathThird, strlen(pathThird), 0);
+
+				printf("Sockets Formed For Copying\n");
+
+				// Transfer data from S1 to S2 through NM
+				while (1) {
+					ssize_t bytesRead = recv(s1Sock, buffer, 1024, 0);
+					if (bytesRead > 0) {
+						printf("Sending\n");
+						ssize_t bytesSent = send(s2Sock, buffer, bytesRead, 0);
+						if (bytesSent < 0) {
+							perror("Failed to send data to S2");
 							break;
 						}
-					}
-					if(foundFlag == 1)
-					{
-						printf("Found destination path\n");
+						printf("Sent %ld bytes\n", bytesSent);
+					} else if (bytesRead == 0) {
+						printf("Connection closed by peer\n");
+						break;
+					} else {
+						perror("recv failed");
 						break;
 					}
-				}
-				printf("Found flag: %d\n", foundFlag);
-
-				if(foundFlag == 0)
-				{
-					char* parentDir = getDirectoryPath((char*)destinationPath);
-					printf("Parent dir######: %s\n", parentDir);
-					// search for parentDir in the storage servers
-					for(int i = 0; i < storageServerCount; i++)
-					{
-						for(int j = 0; j < storageServers[i].numPaths; j++)
-						{
-							printf("Accessible path: %s\n", storageServers[i].accessiblePaths[j]);
-							if(strcmp(storageServers[i].accessiblePaths[j], parentDir) == 0)
-							{
-								// If path is in accessiblePaths of storageServer
-								// send read request to that storage server
-								printf("Found parent dir\n");
-								destination = malloc(sizeof(PathToServerMap));
-								strcpy(destination->path, storageServers[i].accessiblePaths[j]);
-								destination->server = storageServers[i];
-
-								foundFlag = 1;
-								printf("Found server for path %s\n", parentDir);
-								break;
-							}
-						}
-						if(foundFlag == 1)
-						{
-							printf("Found parent dir\n");
-							break;
-						}
-					}
-				}
-				if(foundFlag == 0)
-				{
-					printf("Destination path not found\n");
-					return NULL;
+					printf("Next Iter\n");
 				}
 
-				// send this information to the source storage server
-				char reply[2000];
-				memset(reply, '\0', sizeof(reply));
-				sprintf(reply,
-						"COPY %s %d %s %s",
-						destination->server.ipAddress,
-						destination->server.ssPort,
-						sourcePath,
-						destinationPath);
-				// printf("Reply: %s\n", reply);
-				int serversock;
-				struct sockaddr_in server;
-				char server_reply[2000] = {'\0'};
+				printf("Data Transfer Complete\n");
 
-				// Create socket
-				serversock = socket(AF_INET, SOCK_STREAM, 0);
-				if(serversock == -1)
-				{
-					printf("Could not create socket");
-				}
+				int numberToSend = 11;
+				ssize_t bytesSent_1 = send(sock, &numberToSend, sizeof(numberToSend), 0);
+				if (bytesSent_1 < 0) {
+					perror("Failed to send data");
+}
 
-				server.sin_addr.s_addr = inet_addr(source->server.ipAddress);
-				server.sin_family = AF_INET;
-				server.sin_port = htons(source->server.nmPort);
 
-				// Connect to remote server
-				if(connect(serversock, (struct sockaddr*)&server, sizeof(server)) < 0)
-				{
-					perror("connect failed. Error");
-					return NULL;
-				}
+				printf("Data Transfer Complete\n");
+				close(s1Sock);
+				printf("Socket Closed\n");
 
-				// Send some data
-				// printf("The length of reply is %d\n", strlen(reply));
-				if(send(serversock, reply, strlen(reply), 0) < 0)
-				{
-					puts("Send failed");
-					return NULL;
-				}
+				// Close s2Sock to signal the Receiver
+				close(s2Sock);
+				printf("Socket Closed\n");
 
-				// Receive a reply from the server
-				char s_reply[2000];
-				memset(s_reply, '\0', sizeof(s_reply));
-				if(recv(serversock, s_reply, 2000, 0) < 0)
-				{
-					puts("recv failed");
-				}
-				send(clientsock, s_reply, strlen(s_reply), 0);
 
-				close(serversock);
-				update_list_of_accessiblepaths(0);
 			}
-			else if(strcmp(tokenArray[0], "LISTALL") == 0)
+			else if(strncmp(buffer_copy, "LISTALL", 7) == 0)
 			{
 				
 				// listing all the accessible paths
