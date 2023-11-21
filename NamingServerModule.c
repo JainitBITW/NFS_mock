@@ -45,14 +45,7 @@ typedef struct PathToServerMap
 	UT_hash_handle hh; // Makes this structure hashable
 } PathToServerMap;
 
-typedef struct ThreadArgs
-{
-	char* ipAddress;
-	int port;
-	char buffer[1024];
-	int is_original;
-	int clientsock;
-} ThreadArgs;		
+	
 PathToServerMap* serversByPath = NULL;
 
 void* handleClientRequest();
@@ -716,6 +709,7 @@ void* handleClientInput(void* socketDesc)
 					int storageserversocket;
 					struct sockaddr_in storageserveraddress;
 					char storageserverreply[2000];
+					int storage_server_index;
 
 					// Create socket
 					storageserversocket = socket(AF_INET, SOCK_STREAM, 0);
