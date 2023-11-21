@@ -10,7 +10,7 @@
 #define NAMING_SERVER_PORT 8001
 #define IP_ADDRESS "127.0.0.1"
 
-char request[100]; // global variable to take input of from client
+char request[1000]; // global variable to take input of from client
 
 // read function when client requests to read a file
 void clientRead(int clientSocket)
@@ -85,10 +85,12 @@ void clientWrite(int clientSocket)
     // send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
 
+    
+
     // receive response from Naming Server
     char response[100];
     recv(clientSocket, response, sizeof(response), 0);
-
+    printf("SEnten\n");
     if (strcmp(response, "File not Found") == 0)
     {
         printf("The file doesn't exist\n");
@@ -396,6 +398,31 @@ void removeWhitespace(char *inputString)
     inputString[writeIndex] = '\0';
 }
 
+
+// Function to remove leading and trailing whitespaces
+void strip(char *str) {
+    int start = 0, end = strlen(str) - 1;
+
+    // Remove leading whitespaces
+    while (str[start] && isspace((unsigned char) str[start])) {
+        start++;
+    }
+
+    // Remove trailing whitespaces
+    while (end >= start && isspace((unsigned char) str[end])) {
+        end--;
+    }
+
+    // Shift all characters back to the start of the string
+    for (int i = 0; start <= end; i++, start++) {
+        str[i] = str[start];
+    }
+    str[end + 1] = '\0'; // Null-terminate the string
+}
+
+
+
+
 int main()
 {
     // client tries to connect to Naming Server TCP socket
@@ -419,58 +446,27 @@ int main()
     }
 
     // client sends request to Naming Server
-    while (1)
-    {
+    while (1) {
         printf("Enter request: ");
+        fgets(request, sizeof(request), stdin);
+        strip(request); // Strip the input request
 
-        // taking input from client using fgets
-        fgets(request, 100, stdin);
-
-        char request_copy[100];
-        strcpy(request_copy, request);
-
-        // tokenising the request into a token array
-        char *tokenArray[10];
-        char *token = strtok(request_copy, " ");
-        int i = 0;
-        while (token != NULL)
-        {
-            removeWhitespace(token);
-            tokenArray[i++] = token;
-            token = strtok(NULL, " ");
-        }
-
-        // if the request is to read a file
-        if (strcmp(tokenArray[0], "READ") == 0)
-        {
+        // Use strncmp to compare the first few characters of the command
+        if (strncmp(request, "READ", 4) == 0) {
             clientRead(clientSocket);
-        }
-        else if (strcmp(tokenArray[0], "WRITE") == 0)
-        {
+        } else if (strncmp(request, "WRITE", 5) == 0) {
             clientWrite(clientSocket);
-        }
-        else if (strcmp(tokenArray[0], "GETSIZE") == 0)
-        {
+        } else if (strncmp(request, "GETSIZE", 7) == 0) {
             clientGetSize(clientSocket);
-        }
-        else if (strcmp(tokenArray[0], "CREATE") == 0)
-        {
+        } else if (strncmp(request, "CREATE", 6) == 0) {
             clientCreate(clientSocket);
-        }
-        else if (strcmp(tokenArray[0], "DELETE") == 0)
-        {
+        } else if (strncmp(request, "DELETE", 6) == 0) {
             clientDelete(clientSocket);
-        }
-        else if (strcmp(tokenArray[0], "COPY") == 0)
-        {
+        } else if (strncmp(request, "COPY", 4) == 0) {
             clientCopy(clientSocket);
-        }
-        else if (strcmp(tokenArray[0], "LISTALL") == 0)
-        {
+        } else if (strncmp(request, "LISTALL", 7) == 0) {
             clientListAll(clientSocket);
-        }
-        else
-        {
+        } else {
             printf("Invalid request\n");
         }
 
