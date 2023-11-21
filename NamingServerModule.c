@@ -1669,30 +1669,28 @@ void* handleClientInput(void* socketDesc)
 				}
 
 				// first we find to which storage server the path Third belongs to
-				// PathToServerMap* s1;
-				// HASH_FIND_STR(serversByPath, pathThird, s1);
+				PathToServerMap* s1;
+				HASH_FIND_STR(serversByPath, pathThird, s1);
+				if(s1 != NULL)
+				{
+					strcpy(ip_Address_ss2, s1->server.ipAddress);
+					port_ss2 = s1->server.ssPort_recv;
+					printf("Found server for path %s\n", pathThird);
+					sprintf(concatenatedstring, "Found server for path %s", pathThird);
+					logmessage = concatenatedstring;
+					loggingfunction();
 
-			
-				// if(s1 != NULL)
-				// {
-				// 	strcpy(ip_Address_ss2, s1->server.ipAddress);
-				// 	port_ss2 = s1->server.ssPort_recv;
-				// 	printf("Found server for path %s\n", pathThird);
-				// 	sprintf(concatenatedstring, "Found server for path %s", pathThird);
-				// 	logmessage = concatenatedstring;
-				// 	loggingfunction();
+					printf("IP: %s\n", ip_Address_ss2);
+					sprintf(concatenatedstring, "IP: %s", ip_Address_ss2);
+					logmessage = concatenatedstring;
+					loggingfunction();
 
-				// 	printf("IP: %s\n", ip_Address_ss2);
-				// 	sprintf(concatenatedstring, "IP: %s", ip_Address_ss2);
-				// 	logmessage = concatenatedstring;
-				// 	loggingfunction();
-
-				// 	printf("Port: %d\n", port_ss2);
-				// 	sprintf(concatenatedstring, "Port: %d", port_ss2);
-				// 	logmessage = concatenatedstring;
-				// 	loggingfunction();
+					printf("Port: %d\n", port_ss2);
+					sprintf(concatenatedstring, "Port: %d", port_ss2);
+					logmessage = concatenatedstring;
+					loggingfunction();
 					
-				// }			
+				}			
 
 				// char ip_Address_ss2[16];
 				// int port_ss2;
@@ -1742,8 +1740,8 @@ void* handleClientInput(void* socketDesc)
 					exit(EXIT_FAILURE);
 				}
 				s2Addr.sin_family = AF_INET;
-				s2Addr.sin_port = htons(storageServers[0].ssPort_recv);
-				s2Addr.sin_addr.s_addr = inet_addr(storageServers[0].ipAddress);
+				s2Addr.sin_port = htons(port_ss2);
+				s2Addr.sin_addr.s_addr = inet_addr(ip_Address_ss2);
 				if(connect(s2Sock, (struct sockaddr*)&s2Addr, sizeof(s2Addr)) < 0)
 				{
 					perror("Connection to S2 failed");
