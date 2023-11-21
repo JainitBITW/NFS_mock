@@ -43,6 +43,14 @@ typedef struct PathToServerMap
 	UT_hash_handle hh; // Makes this structure hashable
 } PathToServerMap;
 
+typedef struct ThreadArgs
+{
+	char* ipAddress;
+	int port;
+	char buffer[1024];
+	int is_original;
+	int clientsock;
+} ThreadArgs;		
 PathToServerMap* serversByPath = NULL;
 
 void* handleClientRequest();
@@ -116,11 +124,11 @@ void update_list_of_accessiblepaths(int index)
 	{
 		puts("recv failed");
 	}
-	if (strcmp(server_reply, "OK") != 0) {
+	if(strcmp(server_reply, "OK") != 0)
+	{
 		printf("Error receiving paths\n");
 		return;
 	}
-
 
 	memset(
 		storageServers[index].accessiblePaths, '\0', sizeof(storageServers[index].accessiblePaths));
@@ -144,7 +152,6 @@ void update_list_of_accessiblepaths(int index)
 		}
 	}
 	close(sock);
-
 }
 
 void* handleStorageServer(void* socketDesc)
@@ -390,7 +397,65 @@ void removeWhitespace(char* inputString)
 	// Null-terminate the new string
 	inputString[writeIndex] = '\0';
 }
+char *remove_prefix(const char *s, const char *prefix) {
+    size_t prefix_length = strlen(prefix);
+    
+    if (strncmp(s, prefix, prefix_length) == 0) {
+        return strdup(s + prefix_length);
+    } else {
+        return strdup(s);
+    }
+}
+void* send_request_async(void * arg)
+{
+	ThreadArgs* args = (ThreadArgs*)arg;
+	//create a socket
+	int sock;
+	struct sockaddr_in server;
+	char server_reply[2000];					
+	
+	// Create socket
+	sock = socket(AF_INET, SOCK_STREAM, 0);	
+	if(sock == -1)	
+	{		
+		printf("Could not create socket");	
+	}
 
+	server.sin_addr.s_addr = inet_addr(args->ipAddress);
+	server.sin_family = AF_INET;
+	server.sin_port = htons(args->port);
+
+	// Connect to remote server
+	if(connect(sock, (struct sockaddr*)&server, sizeof(server)) < 0)
+	{
+		perror("connect failed. Error");
+		return NULL;
+	}
+
+	// Send some data
+	if(send(sock, args->buffer, strlen(args->buffer), 0) < 0)
+	{
+		puts("Send failed");
+		return NULL;
+	}
+
+	if (args->is_original == 1)
+	{
+		// Receive a reply from the server
+		if(recv(sock, server_reply, 2000, 0) < 0)
+		{
+			puts("recv failed");
+		
+		}
+		send(args->clientsock, server_reply, strlen(server_reply), 0);
+
+	}					
+
+
+	return NULL;
+	
+	
+}	
 void* handleClientInput(void* socketDesc)
 {
 	int sock = *(int*)socketDesc;
@@ -481,6 +546,7 @@ void* handleClientInput(void* socketDesc)
 			}
 			else if(strcmp(tokenArray[0], "CREATE") == 0)
 			{
+				int storage_server_index = 0;
 				char path[1024];
 				strcpy(path, tokenArray[1]);
 				// strip the path of white spaces
@@ -559,40 +625,114 @@ void* handleClientInput(void* socketDesc)
 					storageserveraddress.sin_family = AF_INET;
 					storageserveraddress.sin_port = htons(port_ss);
 
+					for(int i = 0; i < storageServerCount; i++)
+					{
+						if(strcmp(storageServers[i].ipAddress, ip_Address_ss) == 0 &&
+						   storageServers[i].nmPort == port_ss)
+						{
+							storage_server_index = i;
+							break;
+						}
+					}
 					// Connect to remote server
-					if(connect(storageserversocket,
-							   (struct sockaddr*)&storageserveraddress,
-							   sizeof(storageserveraddress)) < 0)
+					if(storageServerCount >= 3)
 					{
-						perror("connect failed. Error");
-						return NULL;
-					}
+						int store_1, store_2;
+						if(storage_server_index == 0)
+						{
+							store_1 = 1;
+							store_2 = 2;
+						}
+						else if(storage_server_index == 1)
+						{
+							store_1 = 0;
+							store_2 = 2;
+						}
+						else
+						{
+							store_1 = 0;
+							store_2 = 1;
+						}
+						char path1[1024];	
+						char path2[1024];
+						char* without_prefix = remove_prefix(path, storageServers[storage_server_index].accessiblePaths[0]);
+						printf("Without prefix: %s\n", without_prefix);
+						sprintf(path1, "%sBackup/%s", storageServers[store_1].accessiblePaths[0], without_prefix);	
+						sprintf(path2, "%sBackup/%s", storageServers[store_2].accessiblePaths[0], without_prefix);
+						printf("Path1: %s\n", path1);
+						printf("Path2: %s\n", path2);
 
-					// Send some data
-					if(send(storageserversocket, buffer_copy, strlen(buffer_copy), 0) < 0)
-					{
-						puts("Send failed");
-						return NULL;
-					}
 
-					// Receive a reply from the server
-					if(recv(storageserversocket, storageserverreply, 2000, 0) < 0)
-					{
-						puts("recv failed");
-					}
+						//now we create 3 threads to send the request to all the 3 storage servers	
+						ThreadArgs* args1 = malloc(sizeof(ThreadArgs));
+						args1->ipAddress = storageServers[store_1].ipAddress;
+						args1->port = storageServers[store_1].nmPort;
+						sprintf(args1->buffer, "CREATE %s", path1);	
+						args1->is_original = 0;	
+						pthread_t thread1;	
+						pthread_create(&thread1, NULL, send_request_async, (void*)args1);		
+						pthread_detach(thread1);
 
-					// Send back to client
-					if(send(sock, storageserverreply, strlen(storageserverreply), 0) < 0)
-					{
-						puts("Send failed");
-						return NULL;
+						ThreadArgs* args2 = malloc(sizeof(ThreadArgs));
+						args2->ipAddress = storageServers[store_2].ipAddress;		
+						args2->port = storageServers[store_2].nmPort;
+						sprintf(args2->buffer, "CREATE %s", path2);	
+						args2->is_original = 0;
+						pthread_t thread2;		
+						pthread_create(&thread2, NULL, send_request_async, (void*)args2);
+						pthread_detach(thread2);	
+
+						ThreadArgs* args3 = malloc(sizeof(ThreadArgs));		
+						args3->ipAddress = storageServers[storage_server_index].ipAddress;	
+						args3->port = storageServers[storage_server_index].nmPort;	
+						args3->is_original = 1;
+						args3->clientsock = clientsock;
+						sprintf(args3->buffer, "CREATE %s", path);		
+						pthread_t thread3;
+						pthread_create(&thread3, NULL, send_request_async, (void*)args3);	
+						pthread_detach(thread3);	
+
+						//now we wait for the 3 threads to finish		
+						pthread_join(thread1, NULL);		
+						pthread_join(thread2, NULL);	
+						pthread_join(thread3, NULL);
+
+						//now we send the reply back to the client			
+
 					}
+					// if(connect(storageserversocket,
+					// 		   (struct sockaddr*)&storageserveraddress,
+					// 		   sizeof(storageserveraddress)) < 0)
+					// {
+					// 	perror("connect failed. Error");
+					// 	return NULL;
+					// }
+
+					// // Send some data
+					// if(send(storageserversocket, buffer_copy, strlen(buffer_copy), 0) < 0)
+					// {
+					// 	puts("Send failed");
+					// 	return NULL;
+					// }
+
+					// // Receive a reply from the server
+					// if(recv(storageserversocket, storageserverreply, 2000, 0) < 0)
+					// {
+					// 	puts("recv failed");
+					// }
+
+					// // Send back to client
+					// if(send(sock, storageserverreply, strlen(storageserverreply), 0) < 0)
+					// {
+					// 	puts("Send failed");
+					// 	return NULL;
+					// }
 				}
 				else if(foundFlag == 0)
 				{
 				}
 
-				update_list_of_accessiblepaths(0);
+				update_list_of_accessiblepaths(storage_server_index);
 			}
 			else if(strcmp(tokenArray[0], "DELETE") == 0)
 			{
@@ -712,7 +852,7 @@ void* handleClientInput(void* socketDesc)
 				printf("Destination path: %s\n", destinationPath);
 				printf("length of source path: %d\n", strlen(sourcePath));
 				printf("length of destination path: %d\n", strlen(destinationPath));
-				printf("Total Number of Storage Server: %d\n",storageServerCount);
+				printf("Total Number of Storage Server: %d\n", storageServerCount);
 				for(int i = 0; i < storageServerCount; i++)
 				{
 					printf("Storage server %d\n", i);
@@ -888,7 +1028,7 @@ void* handleClientInput(void* socketDesc)
 			}
 			else if(strcmp(tokenArray[0], "LISTALL") == 0)
 			{
-				
+
 				// listing all the accessible paths
 				char response[40960]; // sending one at a time
 				response[0] = '\0';
@@ -915,8 +1055,6 @@ void* handleClientInput(void* socketDesc)
 					return NULL;
 				}
 			}
-			
-
 		}
 		if(readSize < 0)
 		{
@@ -930,8 +1068,6 @@ void* handleClientInput(void* socketDesc)
 			printf("Client disconnected\n");
 			break;
 		}
-
-
 	}
 	close(sock);
 	free(socketDesc);
