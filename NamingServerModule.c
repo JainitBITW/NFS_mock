@@ -24,7 +24,6 @@
 //     char fileTree[1000]; // Placeholder for file tree representation
 // } FileSystem;
 
-
 typedef struct StorageServer
 {
 	char ipAddress[16]; // IPv4 Address
@@ -45,7 +44,14 @@ typedef struct PathToServerMap
 	UT_hash_handle hh; // Makes this structure hashable
 } PathToServerMap;
 
-	
+typedef struct ThreadArgs
+{
+	char* ipAddress;
+	int port;
+	char buffer[1024];
+	int is_original;
+	int clientsock;
+} ThreadArgs;
 PathToServerMap* serversByPath = NULL;
 
 void* handleClientRequest();
@@ -394,28 +400,32 @@ void removeWhitespace(char* inputString)
 	// Null-terminate the new string
 	inputString[writeIndex] = '\0';
 }
-char *remove_prefix(const char *s, const char *prefix) {
-    size_t prefix_length = strlen(prefix);
-    
-    if (strncmp(s, prefix, prefix_length) == 0) {
-        return strdup(s + prefix_length);
-    } else {
-        return strdup(s);
-    }
+char* remove_prefix(const char* s, const char* prefix)
+{
+	size_t prefix_length = strlen(prefix);
+
+	if(strncmp(s, prefix, prefix_length) == 0)
+	{
+		return strdup(s + prefix_length);
+	}
+	else
+	{
+		return strdup(s);
+	}
 }
-void* send_request_async(void * arg)
+void* send_request_async(void* arg)
 {
 	ThreadArgs* args = (ThreadArgs*)arg;
 	//create a socket
 	int sock;
 	struct sockaddr_in server;
-	char server_reply[2000];					
-	
+	char server_reply[2000];
+
 	// Create socket
-	sock = socket(AF_INET, SOCK_STREAM, 0);	
-	if(sock == -1)	
-	{		
-		printf("Could not create socket");	
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if(sock == -1)
+	{
+		printf("Could not create socket");
 	}
 
 	server.sin_addr.s_addr = inet_addr(args->ipAddress);
@@ -436,118 +446,127 @@ void* send_request_async(void * arg)
 		return NULL;
 	}
 
-	if (args->is_original == 1)
+	if(args->is_original == 1)
 	{
 		// Receive a reply from the server
 		if(recv(sock, server_reply, 2000, 0) < 0)
 		{
 			puts("recv failed");
-		
 		}
 		send(args->clientsock, server_reply, strlen(server_reply), 0);
-
-	}					
-
+	}
 
 	return NULL;
-	
-	
-}	
+}
 // Function to remove leading and trailing whitespaces and reduce multiple spaces to a single space
-void strip(char *str) {
-    int start = 0, end = strlen(str) - 1;
+void strip(char* str)
+{
+	int start = 0, end = strlen(str) - 1;
 
-    // Remove leading whitespaces
-    while (str[start] && isspace((unsigned char) str[start])) {
-        start++;
-    }
+	// Remove leading whitespaces
+	while(str[start] && isspace((unsigned char)str[start]))
+	{
+		start++;
+	}
 
-    // Remove trailing whitespaces
-    while (end >= start && isspace((unsigned char) str[end])) {
-        end--;
-    }
+	// Remove trailing whitespaces
+	while(end >= start && isspace((unsigned char)str[end]))
+	{
+		end--;
+	}
 
-    // Condense multiple spaces and shift characters
-    int i = 0, j = start;
-    int inSpace = 0;
-    while (j <= end) {
-        if (isspace((unsigned char) str[j])) {
-            if (!inSpace) {
-                str[i++] = ' '; // Add one space and set flag
-                inSpace = 1;
-            }
-        } else {
-            str[i++] = str[j];
-            inSpace = 0; // Reset space flag
-        }
-        j++;
-    }
-    str[i] = '\0'; // Null-terminate the string
+	// Condense multiple spaces and shift characters
+	int i = 0, j = start;
+	int inSpace = 0;
+	while(j <= end)
+	{
+		if(isspace((unsigned char)str[j]))
+		{
+			if(!inSpace)
+			{
+				str[i++] = ' '; // Add one space and set flag
+				inSpace = 1;
+			}
+		}
+		else
+		{
+			str[i++] = str[j];
+			inSpace = 0; // Reset space flag
+		}
+		j++;
+	}
+	str[i] = '\0'; // Null-terminate the string
 }
 
+void extractPath(const char* input, char* path, size_t pathSize)
+{
+	// Find the first space
+	const char* firstSpace = strchr(input, ' ');
+	if(firstSpace == NULL)
+	{
+		printf("No spaces found.\n");
+		return;
+	}
 
-void extractPath(const char *input, char *path, size_t pathSize) {
-    // Find the first space
-    const char *firstSpace = strchr(input, ' ');
-    if (firstSpace == NULL) {
-        printf("No spaces found.\n");
-        return;
-    }
+	// Find the second space or the end of the string
+	const char* secondSpace = strchr(firstSpace + 1, ' ');
+	if(secondSpace == NULL)
+	{
+		// If only one space found, use the end of the string
+		secondSpace = input + strlen(input);
+	}
 
-    // Find the second space or the end of the string
-    const char *secondSpace = strchr(firstSpace + 1, ' ');
-    if (secondSpace == NULL) {
-        // If only one space found, use the end of the string
-        secondSpace = input + strlen(input);
-    }
+	// Calculate the length of the path
+	size_t pathLength = secondSpace - firstSpace - 1;
+	if(pathLength >= pathSize)
+	{
+		printf("Path buffer is too small.\n");
+		return;
+	}
 
-    // Calculate the length of the path
-    size_t pathLength = secondSpace - firstSpace - 1;
-    if (pathLength >= pathSize) {
-        printf("Path buffer is too small.\n");
-        return;
-    }
-
-    // Copy the path into the provided buffer
-    strncpy(path, firstSpace + 1, pathLength);
-    path[pathLength] = '\0'; // Null-terminate the string
+	// Copy the path into the provided buffer
+	strncpy(path, firstSpace + 1, pathLength);
+	path[pathLength] = '\0'; // Null-terminate the string
 }
 
-void extractPathThird(const char *input, char *path, size_t pathSize) {
-    // Find the first space
-    const char *firstSpace = strchr(input, ' ');
-    if (firstSpace == NULL) {
-        printf("No spaces found.\n");
-        return;
-    }
+void extractPathThird(const char* input, char* path, size_t pathSize)
+{
+	// Find the first space
+	const char* firstSpace = strchr(input, ' ');
+	if(firstSpace == NULL)
+	{
+		printf("No spaces found.\n");
+		return;
+	}
 
-    // Find the second space
-    const char *secondSpace = strchr(firstSpace + 1, ' ');
-    if (secondSpace == NULL) {
-        printf("Only one space found.\n");
-        return;
-    }
+	// Find the second space
+	const char* secondSpace = strchr(firstSpace + 1, ' ');
+	if(secondSpace == NULL)
+	{
+		printf("Only one space found.\n");
+		return;
+	}
 
-    // Find the third space or the end of the string
-    const char *thirdSpace = strchr(secondSpace + 1, ' ');
-    if (thirdSpace == NULL) {
-        // If only two spaces found, use the end of the string
-        thirdSpace = input + strlen(input);
-    }
+	// Find the third space or the end of the string
+	const char* thirdSpace = strchr(secondSpace + 1, ' ');
+	if(thirdSpace == NULL)
+	{
+		// If only two spaces found, use the end of the string
+		thirdSpace = input + strlen(input);
+	}
 
-    // Calculate the length of the path
-    size_t pathLength = thirdSpace - secondSpace - 1;
-    if (pathLength >= pathSize) {
-        printf("Path buffer is too small.\n");
-        return;
-    }
+	// Calculate the length of the path
+	size_t pathLength = thirdSpace - secondSpace - 1;
+	if(pathLength >= pathSize)
+	{
+		printf("Path buffer is too small.\n");
+		return;
+	}
 
-    // Copy the path into the provided buffer
-    strncpy(path, secondSpace + 1, pathLength);
-    path[pathLength] = '\0'; // Null-terminate the string
+	// Copy the path into the provided buffer
+	strncpy(path, secondSpace + 1, pathLength);
+	path[pathLength] = '\0'; // Null-terminate the string
 }
-
-
 
 void* handleClientInput(void* socketDesc)
 {
@@ -581,11 +600,11 @@ void* handleClientInput(void* socketDesc)
 			extractPath(buffer_copy, path, sizeof(path));
 
 			//  checking the command
-			if(strncmp(buffer_copy, "READ",4) == 0 || strncmp(buffer_copy, "WRITE",5) == 0 ||
-			   strncmp(buffer_copy, "GETSIZE",7) == 0)
+			if(strncmp(buffer_copy, "READ", 4) == 0 || strncmp(buffer_copy, "WRITE", 5) == 0 ||
+			   strncmp(buffer_copy, "GETSIZE", 7) == 0)
 			{
 				printf("Command: %s\n", buffer_copy);
-				printf("PATH : %s\n",path);
+				printf("PATH : %s\n", path);
 				// finding out the storage server for the file
 				// path is tokenArray[1]
 				// strcpy(path, tokenArray[1]);
@@ -750,52 +769,57 @@ void* handleClientInput(void* socketDesc)
 							store_1 = 0;
 							store_2 = 1;
 						}
-						char path1[1024];	
+						char path1[1024];
 						char path2[1024];
-						char* without_prefix = remove_prefix(path, storageServers[storage_server_index].accessiblePaths[0]);
+						char* without_prefix = remove_prefix(
+							path, storageServers[storage_server_index].accessiblePaths[0]);
 						printf("Without prefix: %s\n", without_prefix);
-						sprintf(path1, "%sBackup/%s", storageServers[store_1].accessiblePaths[0], without_prefix);	
-						sprintf(path2, "%sBackup/%s", storageServers[store_2].accessiblePaths[0], without_prefix);
+						sprintf(path1,
+								"%sBackup/%s",
+								storageServers[store_1].accessiblePaths[0],
+								without_prefix);
+						sprintf(path2,
+								"%sBackup/%s",
+								storageServers[store_2].accessiblePaths[0],
+								without_prefix);
 						printf("Path1: %s\n", path1);
 						printf("Path2: %s\n", path2);
 
-
-						//now we create 3 threads to send the request to all the 3 storage servers	
+						//now we create 3 threads to send the request to all the 3 storage servers
 						ThreadArgs* args1 = malloc(sizeof(ThreadArgs));
 						args1->ipAddress = storageServers[store_1].ipAddress;
 						args1->port = storageServers[store_1].nmPort;
-						sprintf(args1->buffer, "CREATE %s", path1);	
-						args1->is_original = 0;	
-						pthread_t thread1;	
-						pthread_create(&thread1, NULL, send_request_async, (void*)args1);		
+						sprintf(args1->buffer, "CREATE %s", path1);
+						args1->is_original = 0;
+						pthread_t thread1;
+						pthread_create(&thread1, NULL, send_request_async, (void*)args1);
 						pthread_detach(thread1);
 
 						ThreadArgs* args2 = malloc(sizeof(ThreadArgs));
-						args2->ipAddress = storageServers[store_2].ipAddress;		
+						args2->ipAddress = storageServers[store_2].ipAddress;
 						args2->port = storageServers[store_2].nmPort;
-						sprintf(args2->buffer, "CREATE %s", path2);	
+						sprintf(args2->buffer, "CREATE %s", path2);
 						args2->is_original = 0;
-						pthread_t thread2;		
+						pthread_t thread2;
 						pthread_create(&thread2, NULL, send_request_async, (void*)args2);
-						pthread_detach(thread2);	
+						pthread_detach(thread2);
 
-						ThreadArgs* args3 = malloc(sizeof(ThreadArgs));		
-						args3->ipAddress = storageServers[storage_server_index].ipAddress;	
-						args3->port = storageServers[storage_server_index].nmPort;	
+						ThreadArgs* args3 = malloc(sizeof(ThreadArgs));
+						args3->ipAddress = storageServers[storage_server_index].ipAddress;
+						args3->port = storageServers[storage_server_index].nmPort;
 						args3->is_original = 1;
 						args3->clientsock = clientsock;
-						sprintf(args3->buffer, "CREATE %s", path);		
+						sprintf(args3->buffer, "CREATE %s", path);
 						pthread_t thread3;
-						pthread_create(&thread3, NULL, send_request_async, (void*)args3);	
-						pthread_detach(thread3);	
+						pthread_create(&thread3, NULL, send_request_async, (void*)args3);
+						pthread_detach(thread3);
 
-						//now we wait for the 3 threads to finish		
-						pthread_join(thread1, NULL);		
-						pthread_join(thread2, NULL);	
+						//now we wait for the 3 threads to finish
+						pthread_join(thread1, NULL);
+						pthread_join(thread2, NULL);
 						pthread_join(thread3, NULL);
 
-						//now we send the reply back to the client			
-
+						//now we send the reply back to the client
 					}
 					// if(connect(storageserversocket,
 					// 		   (struct sockaddr*)&storageserveraddress,
@@ -940,7 +964,6 @@ void* handleClientInput(void* socketDesc)
 
 				printf("Path Third: %s\n", pathThird);
 
-
 				char ip_Address_ss[16];
 				int port_ss;
 				printf("Path: %s\n", path);
@@ -969,36 +992,38 @@ void* handleClientInput(void* socketDesc)
 				// 	printf("Port: %d\n", port_ss2);
 				// }
 
-
-
 				int s1Sock, s2Sock;
 				struct sockaddr_in s1Addr, s2Addr;
 				char buffer[1024];
 				ssize_t bytesRead, bytesSent;
 
 				// Create and connect socket to S1
-				if ((s1Sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+				if((s1Sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+				{
 					perror("Socket creation for S1 failed");
 					exit(EXIT_FAILURE);
 				}
 				s1Addr.sin_family = AF_INET;
 				s1Addr.sin_port = htons(port_ss);
 				s1Addr.sin_addr.s_addr = inet_addr(ip_Address_ss);
-				if (connect(s1Sock, (struct sockaddr *)&s1Addr, sizeof(s1Addr)) < 0) {
+				if(connect(s1Sock, (struct sockaddr*)&s1Addr, sizeof(s1Addr)) < 0)
+				{
 					perror("Connection to S1 failed");
 					close(s1Sock);
 					exit(EXIT_FAILURE);
 				}
 
 				// Create and connect socket to S2
-				if ((s2Sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+				if((s2Sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+				{
 					perror("Socket creation for S2 failed");
 					exit(EXIT_FAILURE);
 				}
 				s2Addr.sin_family = AF_INET;
 				s2Addr.sin_port = htons(storageServers[0].ssPort_recv);
 				s2Addr.sin_addr.s_addr = inet_addr(storageServers[0].ipAddress);
-				if (connect(s2Sock, (struct sockaddr *)&s2Addr, sizeof(s2Addr)) < 0) {
+				if(connect(s2Sock, (struct sockaddr*)&s2Addr, sizeof(s2Addr)) < 0)
+				{
 					perror("Connection to S2 failed");
 					close(s2Sock);
 					exit(EXIT_FAILURE);
@@ -1017,20 +1042,27 @@ void* handleClientInput(void* socketDesc)
 				printf("Sockets Formed For Copying\n");
 
 				// Transfer data from S1 to S2 through NM
-				while (1) {
+				while(1)
+				{
 					ssize_t bytesRead = recv(s1Sock, buffer, 1024, 0);
-					if (bytesRead > 0) {
+					if(bytesRead > 0)
+					{
 						printf("Sending\n");
 						ssize_t bytesSent = send(s2Sock, buffer, bytesRead, 0);
-						if (bytesSent < 0) {
+						if(bytesSent < 0)
+						{
 							perror("Failed to send data to S2");
 							break;
 						}
 						printf("Sent %ld bytes\n", bytesSent);
-					} else if (bytesRead == 0) {
+					}
+					else if(bytesRead == 0)
+					{
 						printf("Connection closed by peer\n");
 						break;
-					} else {
+					}
+					else
+					{
 						perror("recv failed");
 						break;
 					}
@@ -1041,10 +1073,10 @@ void* handleClientInput(void* socketDesc)
 
 				int numberToSend = 11;
 				ssize_t bytesSent_1 = send(sock, &numberToSend, sizeof(numberToSend), 0);
-				if (bytesSent_1 < 0) {
+				if(bytesSent_1 < 0)
+				{
 					perror("Failed to send data");
-}
-
+				}
 
 				printf("Data Transfer Complete\n");
 				close(s1Sock);
@@ -1053,8 +1085,6 @@ void* handleClientInput(void* socketDesc)
 				// Close s2Sock to signal the Receiver
 				close(s2Sock);
 				printf("Socket Closed\n");
-
-
 			}
 			else if(strncmp(buffer_copy, "LISTALL", 7) == 0)
 			{
