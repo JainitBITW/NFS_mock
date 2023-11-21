@@ -20,7 +20,8 @@ void clientRead(int clientSocket)
     send(clientSocket, request, strlen(request), 0);
 
     // receive the response from the Naming Server
-    char response[100];
+    char response[10000];
+    memset(response, '\0', sizeof(response));
     recv(clientSocket, response, sizeof(response), 0);
 
     if (strcmp(response, "File not Found") == 0)
@@ -59,9 +60,9 @@ void clientRead(int clientSocket)
         send(storageServerSocket, request, strlen(request), 0);
 
         // client receives response from Storage Server
-        char responseStorage[100];
+        char responseStorage[10000];
+        memset(responseStorage, '\0', sizeof(responseStorage));
         recv(storageServerSocket, responseStorage, sizeof(responseStorage), 0);
-
         if (strcmp(responseStorage, "Read error") == 0 || strcmp(responseStorage, "No content") == 0 || strcmp(responseStorage, "File not Found") == 0)
         {
             printf("The following error was encountered: \n");
@@ -85,10 +86,9 @@ void clientWrite(int clientSocket)
     // send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
 
-    
-
     // receive response from Naming Server
-    char response[100];
+    char response[10000];
+    memset(response, '\0', sizeof(response));
     recv(clientSocket, response, sizeof(response), 0);
     printf("SEnten\n");
     if (strcmp(response, "File not Found") == 0)
@@ -127,7 +127,8 @@ void clientWrite(int clientSocket)
         send(storageServerSocket, request, strlen(request), 0);
 
         // client receives response from Storage Server
-        char responseStorage[100];
+        char responseStorage[10000];
+        memset(responseStorage, '\0', sizeof(responseStorage));
         recv(storageServerSocket, responseStorage, sizeof(responseStorage), 0);
 
         if (strcmp(responseStorage, "Error opening file for writing") == 0 || strcmp(responseStorage, "Write error") == 0 || strcmp(responseStorage, "File not Found") == 0)
@@ -155,7 +156,8 @@ void clientGetSize(int clientSocket)
     send(clientSocket, request, strlen(request), 0);
 
     // receive response from Naming Server
-    char response[100];
+    char response[10000];
+    memset(response, '\0', sizeof(response));
     recv(clientSocket, response, sizeof(response), 0);
 
     if (strcmp(response, "File not Found") == 0)
@@ -194,7 +196,8 @@ void clientGetSize(int clientSocket)
         send(storageServerSocket, request, strlen(request), 0);
 
         // client receives response from Storage Server
-        char responseStorage[100];
+        char responseStorage[10000];
+        memset(responseStorage, '\0', sizeof(responseStorage));
         recv(storageServerSocket, responseStorage, sizeof(responseStorage), 0);
 
         if (strcmp(responseStorage, "Error getting file size") == 0 || strcmp(responseStorage, "File not Found") == 0)
@@ -220,17 +223,18 @@ void clientCreate(int clientSocket)
     // send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
 
-    char response[100];
+    char response[10000];
+    memset(response, '\0',sizeof(response));
     recv(clientSocket, response, sizeof(response), 0);
 
     int index_case;
     index_case = atoi(response);
 
-    if (index_case == 1)
+    if (index_case == 2)
     {
         printf("Error creating directory\n");
     }
-    else if (index_case == 2)
+    else if (index_case == 1)
     {
         printf("Directory created\n");
     }
@@ -250,7 +254,8 @@ void clientDelete(int clientSocket)
     // send request to Naming Server
     send(clientSocket, request, strlen(request), 0);
 
-    char response[100];
+    char response[10000];
+    memset(response, '\0',sizeof(response));
     recv(clientSocket, response, sizeof(response), 0);
 
     int index_case;
@@ -285,7 +290,8 @@ void clientCopy(int clientSocket)
     // strcpy(request, "COPY ./src/hello ./src/jainit\n");
     send(clientSocket, request, strlen(request), 0);
 
-    char response[100];
+    char response[10000];
+    memset(response, '\0',sizeof(response));
     recv(clientSocket, response, sizeof(response), 0);
 
     int index_case;
@@ -295,11 +301,11 @@ void clientCopy(int clientSocket)
     case 2:
         printf("Error connecting to destination storage server\n");
         break;
-    
+
     case 3:
         printf("Error in Identifying FOLDER \n");
         break;
-    
+
     case 4:
         printf("Error in copying the directory \n");
         break;
@@ -310,7 +316,7 @@ void clientCopy(int clientSocket)
     case 6:
         printf("Error in copying the file \n");
         break;
-    case 13: 
+    case 13:
         printf("Error in opening the file in directory \n");
         break;
     case 7:
@@ -326,9 +332,6 @@ void clientCopy(int clientSocket)
     default:
         break;
     }
-
-    
-
 }
 
 // ls function to send request to naming server to list all accessible paths
@@ -338,29 +341,36 @@ void clientListAll(int clientSocket)
     send(clientSocket, request, strlen(request), 0);
 
     char response[40960];
+    memset(response, '\0', sizeof(response));
     recv(clientSocket, response, sizeof(response), 0);
 
     int i = 0;
-    while (response[i] != '\0') {
+    while (response[i] != '\0')
+    {
         // Check for a new server block
-        if (response[i] == '*') {
+        if (response[i] == '*')
+        {
             i++; // Move past the '*'
-            if(response[i] == '\0') break; 
+            if (response[i] == '\0')
+                break;
             // Extract and print the server number
             printf("\nStorage Server: ");
-            while (response[i] != '$' && response[i] != '\0') {
+            while (response[i] != '$' && response[i] != '\0')
+            {
                 printf("%c", response[i]);
                 i++;
             }
         }
 
         // Check for a new path
-        if (response[i] == '$') {
+        if (response[i] == '$')
+        {
             i++; // Move past the '$'
 
             // Extract and print the path
             printf("\nAccessible path: ");
-            while (response[i] != '$' && response[i] != '*' && response[i] != '\0') {
+            while (response[i] != '$' && response[i] != '*' && response[i] != '\0')
+            {
                 printf("%c", response[i]);
                 i++;
             }
@@ -368,11 +378,6 @@ void clientListAll(int clientSocket)
     }
     printf("\n"); // New line at the end
 }
-
-
-
-
-
 
 void removeWhitespace(char *inputString)
 {
@@ -398,30 +403,30 @@ void removeWhitespace(char *inputString)
     inputString[writeIndex] = '\0';
 }
 
-
 // Function to remove leading and trailing whitespaces
-void strip(char *str) {
+void strip(char *str)
+{
     int start = 0, end = strlen(str) - 1;
 
     // Remove leading whitespaces
-    while (str[start] && isspace((unsigned char) str[start])) {
+    while (str[start] && isspace((unsigned char)str[start]))
+    {
         start++;
     }
 
     // Remove trailing whitespaces
-    while (end >= start && isspace((unsigned char) str[end])) {
+    while (end >= start && isspace((unsigned char)str[end]))
+    {
         end--;
     }
 
     // Shift all characters back to the start of the string
-    for (int i = 0; start <= end; i++, start++) {
+    for (int i = 0; start <= end; i++, start++)
+    {
         str[i] = str[start];
     }
     str[end + 1] = '\0'; // Null-terminate the string
 }
-
-
-
 
 int main()
 {
@@ -446,27 +451,44 @@ int main()
     }
 
     // client sends request to Naming Server
-    while (1) {
+    while (1)
+    {
         printf("Enter request: ");
+        memset(request, '\0', sizeof(request));
         fgets(request, sizeof(request), stdin);
         strip(request); // Strip the input request
 
         // Use strncmp to compare the first few characters of the command
-        if (strncmp(request, "READ", 4) == 0) {
+        if (strncmp(request, "READ", 4) == 0)
+        {
             clientRead(clientSocket);
-        } else if (strncmp(request, "WRITE", 5) == 0) {
+        }
+        else if (strncmp(request, "WRITE", 5) == 0)
+        {
             clientWrite(clientSocket);
-        } else if (strncmp(request, "GETSIZE", 7) == 0) {
+        }
+        else if (strncmp(request, "GETSIZE", 7) == 0)
+        {
             clientGetSize(clientSocket);
-        } else if (strncmp(request, "CREATE", 6) == 0) {
+        }
+        else if (strncmp(request, "CREATE", 6) == 0)
+        {
             clientCreate(clientSocket);
-        } else if (strncmp(request, "DELETE", 6) == 0) {
+        }
+        else if (strncmp(request, "DELETE", 6) == 0)
+        {
             clientDelete(clientSocket);
-        } else if (strncmp(request, "COPY", 4) == 0) {
+        }
+        else if (strncmp(request, "COPY", 4) == 0)
+        {
             clientCopy(clientSocket);
-        } else if (strncmp(request, "LISTALL", 7) == 0) {
+        }
+        else if (strncmp(request, "LISTALL", 7) == 0)
+        {
             clientListAll(clientSocket);
-        } else {
+        }
+        else
+        {
             printf("Invalid request\n");
         }
 

@@ -1,34 +1,38 @@
-Tue Nov 21 13:13:37 2023: Initializing Naming Server...
-Tue Nov 21 13:13:37 2023: Naming Server started listening...
-Tue Nov 21 13:13:41 2023: Received storage server 1 details:
-Tue Nov 21 13:13:41 2023: IP Address: 127.0.0.2
-Tue Nov 21 13:13:41 2023: NM Port: 51749
-Tue Nov 21 13:13:41 2023: Client Port: 47001
-Tue Nov 21 13:13:41 2023: SS Port: 40465
-Tue Nov 21 13:13:41 2023: SS Port: 46009
-Tue Nov 21 13:13:41 2023: Accessible Paths: ./src
-Tue Nov 21 13:13:41 2023: Accessible Paths: ./src/folder1
-Tue Nov 21 13:13:41 2023: Accessible Paths: ./src/folder1/nit
-Tue Nov 21 13:13:41 2023: Accessible Paths: ./src/s
-Tue Nov 21 13:13:41 2023: Accessible Paths: ./src/abcd
-Tue Nov 21 13:13:41 2023: Accessible Paths: ./src/abcd/jainit
-Tue Nov 21 13:13:41 2023: Registration Successful
-Tue Nov 21 13:13:45 2023: Client connected...
-Tue Nov 21 13:14:13 2023: Received command: READ ./src/abcd/jainit
-Tue Nov 21 13:14:13 2023: Command: READ ./src/abcd/jainit
-Tue Nov 21 13:14:13 2023: PATH : ./src/abcd/jainit
-Tue Nov 21 13:14:13 2023: PATH : ./src/abcd/jainit
-Tue Nov 21 13:14:13 2023: Found server for path ./src/abcd/jainit
-Tue Nov 21 13:14:13 2023: IP: 127.0.0.2
-Tue Nov 21 13:14:13 2023: Port: 47001
-Tue Nov 21 13:14:26 2023: Received command: WRITE ./src/abcd/jainit hello
-Tue Nov 21 13:14:26 2023: Command: WRITE ./src/abcd/jainit hello
-Tue Nov 21 13:14:26 2023: PATH : ./src/abcd/jainit
-Tue Nov 21 13:14:26 2023: PATH : ./src/abcd/jainit
-Tue Nov 21 13:14:26 2023: Found server for path ./src/abcd/jainit
-Tue Nov 21 13:14:26 2023: IP: 127.0.0.2
-Tue Nov 21 13:14:26 2023: Port: 47001
-Tue Nov 21 13:14:42 2023: Received command: READ ./src/abcd/jainitt hello
-Tue Nov 21 13:14:42 2023: Command: READ ./src/abcd/jainitt hello
-Tue Nov 21 13:14:42 2023: PATH : ./src/abcd/jainitt
-Tue Nov 21 13:14:42 2023: PATH : ./src/abcd/jainitt
+Tue Nov 21 10:38:44 2023: Initializing Naming Server...
+Tue Nov 21 10:38:44 2023: Naming Server started listening...
+Tue Nov 21 10:38:48 2023: Received storage server 1 details:
+Tue Nov 21 10:38:48 2023: IP Address: 127.0.0.2
+Tue Nov 21 10:38:48 2023: NM Port: 53589
+Tue Nov 21 10:38:48 2023: Client Port: 51033
+Tue Nov 21 10:38:48 2023: SS Port: 34495
+Tue Nov 21 10:38:48 2023: SS Port: 38349
+Tue Nov 21 10:38:48 2023: Accessible Paths: ./src
+Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/yoyo
+Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/folder1
+Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/folder1/nit
+Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/s
+Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/abcd
+Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/abcd/jainit
+Tue Nov 21 10:38:48 2023: Registration Successful
+Tue Nov 21 10:38:55 2023: Client connected...
+Tue Nov 21 10:39:03 2023: Received command: READ ./src/abcd/jainit
+Tue Nov 21 10:39:03 2023: Command: READ ./src/abcd/jainit
+Tue Nov 21 10:39:03 2023: PATH : ./src/abcd/jainit
+Tue Nov 21 10:39:03 2023: PATH : ./src/abcd/jainit
+Tue Nov 21 10:39:03 2023: Found server for path ./src/abcd/jainit
+Tue Nov 21 10:39:03 2023: IP: 127.0.0.2
+Tue Nov 21 10:39:03 2023: Port: 51033
+Tue Nov 21 10:39:17 2023: Received command: WRITE ./src/abcd/jainit rejngjnerkvnerjnv
+Tue Nov 21 10:39:17 2023: Command: WRITE ./src/abcd/jainit rejngjnerkvnerjnv
+Tue Nov 21 10:39:17 2023: PATH : ./src/abcd/jainit
+Tue Nov 21 10:39:17 2023: PATH : ./src/abcd/jainit
+Tue Nov 21 10:39:17 2023: Found server for path ./src/abcd/jainit
+Tue Nov 21 10:39:17 2023: IP: 127.0.0.2
+Tue Nov 21 10:39:17 2023: Port: 51033
+Tue Nov 21 10:39:31 2023: Received command: READ ./src/abcd/jainit
+Tue Nov 21 10:39:31 2023: Command: READ ./src/abcd/jainit
+Tue Nov 21 10:39:31 2023: PATH : ./src/abcd/jainit
+Tue Nov 21 10:39:31 2023: PATH : ./src/abcd/jainit
+Tue Nov 21 10:39:31 2023: Found server for path ./src/abcd/jainit
+Tue Nov 21 10:39:31 2023: IP: 127.0.0.2
+Tue Nov 21 10:39:31 2023: Port: 51033
