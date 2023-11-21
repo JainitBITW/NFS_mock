@@ -32,7 +32,7 @@
 
 // OutGoing Connection
 #define NAMING_SERVER_PORT 8000
-#define MOUNT "./src"
+#define MOUNT "."
 
 // char NMIPADDRESS[16]; // Default value
 // char SSIPADDRESS[16]; // For storing the IP address
@@ -1329,9 +1329,12 @@ void* executeSSRequestRecv(void * arg) {
     char *target = basename(targetDir);
 
     printf("REC Path: %s\n", path);
-
+	char temp[PATH_MAX];
+	memset(temp, '\0', sizeof(temp));
+	strcpy(temp, path);
+	strcat(temp, "1.zip");
     // Open or create file at path
-    int filefd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    int filefd = open(temp, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
     if (filefd < 0) {
         perror("Failed to open file");
         return NULL;
@@ -1366,13 +1369,14 @@ void* executeSSRequestRecv(void * arg) {
     close(filefd);
 
 	char unzippedDir[PATH_MAX];
-	snprintf(unzippedDir, sizeof(unzippedDir), "%s_copy", path);
+	snprintf(unzippedDir, sizeof(unzippedDir), "%s", path);
 
 	printf("Unzipping to %s\n", unzippedDir);
 
 	// Prepare unzip command
 	char unzipCommand[PATH_MAX + 50];
-	snprintf(unzipCommand, sizeof(unzipCommand), "unzip '%s' -d '%s' > /dev/null 2>&1", path, unzippedDir);
+	snprintf(unzipCommand, sizeof(unzipCommand), "unzip '%s' -d '%s' ; rm '%s'", temp, unzippedDir, temp);
+	printf("Unzip command: %s\n", unzipCommand);
     // Execute the unzip command
     int result = system(unzipCommand);
 
@@ -1443,6 +1447,18 @@ void* executeSSRequest(void* arg)
             break;
         }
     }
+
+	// delete the zip file
+	char deleteCommand[PATH_MAX + 50];
+	memset(deleteCommand, '\0', sizeof(deleteCommand));
+	snprintf(deleteCommand, sizeof(deleteCommand), "rm '%s'", zipPath);
+	int deleteStatus = system(deleteCommand);
+	if (deleteStatus != 0) {
+		perror("Failed to delete zip file");
+		close(connSock);
+		return (void*)3;
+	}
+	
 	printf("Out2\n");
 
     fclose(file);

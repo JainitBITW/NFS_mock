@@ -1,38 +1,73 @@
-Tue Nov 21 10:38:44 2023: Initializing Naming Server...
-Tue Nov 21 10:38:44 2023: Naming Server started listening...
-Tue Nov 21 10:38:48 2023: Received storage server 1 details:
-Tue Nov 21 10:38:48 2023: IP Address: 127.0.0.2
-Tue Nov 21 10:38:48 2023: NM Port: 53589
-Tue Nov 21 10:38:48 2023: Client Port: 51033
-Tue Nov 21 10:38:48 2023: SS Port: 34495
-Tue Nov 21 10:38:48 2023: SS Port: 38349
-Tue Nov 21 10:38:48 2023: Accessible Paths: ./src
-Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/yoyo
-Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/folder1
-Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/folder1/nit
-Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/s
-Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/abcd
-Tue Nov 21 10:38:48 2023: Accessible Paths: ./src/abcd/jainit
-Tue Nov 21 10:38:48 2023: Registration Successful
-Tue Nov 21 10:38:55 2023: Client connected...
-Tue Nov 21 10:39:03 2023: Received command: READ ./src/abcd/jainit
-Tue Nov 21 10:39:03 2023: Command: READ ./src/abcd/jainit
-Tue Nov 21 10:39:03 2023: PATH : ./src/abcd/jainit
-Tue Nov 21 10:39:03 2023: PATH : ./src/abcd/jainit
-Tue Nov 21 10:39:03 2023: Found server for path ./src/abcd/jainit
-Tue Nov 21 10:39:03 2023: IP: 127.0.0.2
-Tue Nov 21 10:39:03 2023: Port: 51033
-Tue Nov 21 10:39:17 2023: Received command: WRITE ./src/abcd/jainit rejngjnerkvnerjnv
-Tue Nov 21 10:39:17 2023: Command: WRITE ./src/abcd/jainit rejngjnerkvnerjnv
-Tue Nov 21 10:39:17 2023: PATH : ./src/abcd/jainit
-Tue Nov 21 10:39:17 2023: PATH : ./src/abcd/jainit
-Tue Nov 21 10:39:17 2023: Found server for path ./src/abcd/jainit
-Tue Nov 21 10:39:17 2023: IP: 127.0.0.2
-Tue Nov 21 10:39:17 2023: Port: 51033
-Tue Nov 21 10:39:31 2023: Received command: READ ./src/abcd/jainit
-Tue Nov 21 10:39:31 2023: Command: READ ./src/abcd/jainit
-Tue Nov 21 10:39:31 2023: PATH : ./src/abcd/jainit
-Tue Nov 21 10:39:31 2023: PATH : ./src/abcd/jainit
-Tue Nov 21 10:39:31 2023: Found server for path ./src/abcd/jainit
-Tue Nov 21 10:39:31 2023: IP: 127.0.0.2
-Tue Nov 21 10:39:31 2023: Port: 51033
+Wed Nov 22 01:30:41 2023: Initializing Naming Server...
+Wed Nov 22 01:30:41 2023: Naming Server started listening...
+Wed Nov 22 01:30:44 2023: Received storage server 1 details:
+Wed Nov 22 01:30:44 2023: IP Address: 127.0.0.2
+Wed Nov 22 01:30:44 2023: NM Port: 54715
+Wed Nov 22 01:30:44 2023: Client Port: 44793
+Wed Nov 22 01:30:44 2023: SS Port: 40043
+Wed Nov 22 01:30:44 2023: SS Port: 35645
+Wed Nov 22 01:30:44 2023: Accessible Paths: .
+Wed Nov 22 01:30:44 2023: Accessible Paths: ./abcd
+Wed Nov 22 01:30:44 2023: Accessible Paths: ./abcd/jainit
+Wed Nov 22 01:30:44 2023: Accessible Paths: ./yoyo
+Wed Nov 22 01:30:44 2023: Accessible Paths: ./2d
+Wed Nov 22 01:30:44 2023: Accessible Paths: ./s
+Wed Nov 22 01:30:44 2023: Accessible Paths: ./folder1
+Wed Nov 22 01:30:44 2023: Accessible Paths: ./folder1/nit
+Wed Nov 22 01:30:44 2023: Accessible Paths: ./asdfasdf
+Wed Nov 22 01:30:44 2023: Registration Successful
+Wed Nov 22 01:30:52 2023: Received storage server 2 details:
+Wed Nov 22 01:30:52 2023: IP Address: 127.0.0.2
+Wed Nov 22 01:30:52 2023: NM Port: 43845
+Wed Nov 22 01:30:52 2023: Client Port: 34137
+Wed Nov 22 01:30:52 2023: SS Port: 38287
+Wed Nov 22 01:30:52 2023: SS Port: 36813
+Wed Nov 22 01:30:52 2023: Accessible Paths: .
+Wed Nov 22 01:30:52 2023: Accessible Paths: ./Backup0
+Wed Nov 22 01:30:52 2023: Accessible Paths: ./Backup0/abcd
+Wed Nov 22 01:30:52 2023: Accessible Paths: ./Backup0/abcd/jainit
+Wed Nov 22 01:30:52 2023: Accessible Paths: ./Backup0/src
+Wed Nov 22 01:30:52 2023: Accessible Paths: ./Backup0/src/jainit
+Wed Nov 22 01:30:52 2023: Accessible Paths: ./Backup0/src/temp
+Wed Nov 22 01:30:52 2023: Accessible Paths: ./Backup0/folder1
+Wed Nov 22 01:30:52 2023: Accessible Paths: ./Backup0/folder1/nit
+Wed Nov 22 01:30:52 2023: Accessible Paths: ./Backup0/asdfasdf
+Wed Nov 22 01:30:52 2023: Accessible Paths: ./s
+Wed Nov 22 01:30:52 2023: Registration Successful
+Wed Nov 22 01:30:55 2023: Received storage server 3 details:
+Wed Nov 22 01:30:55 2023: IP Address: 127.0.0.2
+Wed Nov 22 01:30:55 2023: NM Port: 55049
+Wed Nov 22 01:30:55 2023: Client Port: 51859
+Wed Nov 22 01:30:55 2023: SS Port: 39237
+Wed Nov 22 01:30:55 2023: SS Port: 54967
+Wed Nov 22 01:30:55 2023: Accessible Paths: .
+Wed Nov 22 01:30:55 2023: Accessible Paths: ./Backup1
+Wed Nov 22 01:30:55 2023: Accessible Paths: ./Backup1/abcd
+Wed Nov 22 01:30:55 2023: Accessible Paths: ./Backup1/abcd/jainit
+Wed Nov 22 01:30:55 2023: Accessible Paths: ./Backup1/src
+Wed Nov 22 01:30:55 2023: Accessible Paths: ./Backup1/src/jainit
+Wed Nov 22 01:30:55 2023: Accessible Paths: ./Backup1/src/temp
+Wed Nov 22 01:30:55 2023: Accessible Paths: ./Backup1/folder1
+Wed Nov 22 01:30:55 2023: Accessible Paths: ./Backup1/folder1/nit
+Wed Nov 22 01:30:55 2023: Accessible Paths: ./Backup1/asdfasdf
+Wed Nov 22 01:30:55 2023: Accessible Paths: ./s
+Wed Nov 22 01:30:55 2023: Registration Successful
+Wed Nov 22 01:31:00 2023: Client connected...
+Wed Nov 22 01:31:08 2023: Received command: COPY ./abcd ./folder1
+Wed Nov 22 01:31:08 2023: COPY Started
+Wed Nov 22 01:31:08 2023: Path Third: ./folder1
+Wed Nov 22 01:31:08 2023: Path: ./abcd
+Wed Nov 22 01:31:08 2023: Found server for path ./abcd
+Wed Nov 22 01:31:08 2023: IP: 127.0.0.2
+Wed Nov 22 01:31:08 2023: Port: 40043
+Wed Nov 22 01:31:08 2023: Sockets forming is started
+Wed Nov 22 01:31:08 2023: 1 Socket Formed
+Wed Nov 22 01:31:08 2023: Sockets Formed For Copying
+Wed Nov 22 01:31:08 2023: Sending
+Wed Nov 22 01:31:08 2023: Sent 319 bytes
+Wed Nov 22 01:31:08 2023: Next Iter
+Wed Nov 22 01:31:08 2023: Connection closed by peer
+Wed Nov 22 01:31:08 2023: Data Transfer Complete
+Wed Nov 22 01:31:08 2023: Data Transfer Complete
+Wed Nov 22 01:31:08 2023: Socket Closed
+Wed Nov 22 01:31:08 2023: Socket Closed

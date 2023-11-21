@@ -11,3 +11,11 @@ gcc clientfunctions.c -o client
 
 # Provide execution permissions to the compiled binaries
 chmod +x s n client
+
+rm ./src/s 
+rm ./src1/s
+rm ./src2/s 
+
+cp s ./src/s
+cp s ./src1/s
+cp s ./src2/s

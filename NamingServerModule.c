@@ -555,7 +555,7 @@ void get_path_ss(char *path, PathToServerMap *s, int *foundFlag)
 		// Set as head->data
 		s->server = head->data;
 		strcpy(s->path, path);
-		foundFlag = 1;
+		*foundFlag = 1;
 	}
 	if (s != NULL)
 	{
@@ -1626,6 +1626,7 @@ void* handleClientInput(void* socketDesc)
 				logmessage = "COPY Started";
 				loggingfunction();
 				char pathThird[1024];
+				memset(pathThird, '\0', sizeof(pathThird));
 				extractPathThird(buffer_copy, pathThird, sizeof(pathThird));
 
 				printf("Path Third: %s\n", pathThird);
@@ -1634,7 +1635,12 @@ void* handleClientInput(void* socketDesc)
 				loggingfunction();
 
 				char ip_Address_ss[16];
+				memset(ip_Address_ss, '\0', sizeof(ip_Address_ss));
+				char ip_Address_ss2[16];
+				memset(ip_Address_ss2, '\0', sizeof(ip_Address_ss2));
+
 				int port_ss;
+				int port_ss2;
 				printf("Path: %s\n", path);
 				sprintf(concatenatedstring, "Path: %s", path);
 				logmessage = concatenatedstring;
@@ -1661,6 +1667,32 @@ void* handleClientInput(void* socketDesc)
 					logmessage = concatenatedstring;
 					loggingfunction();
 				}
+
+				// first we find to which storage server the path Third belongs to
+				// PathToServerMap* s1;
+				// HASH_FIND_STR(serversByPath, pathThird, s1);
+
+			
+				// if(s1 != NULL)
+				// {
+				// 	strcpy(ip_Address_ss2, s1->server.ipAddress);
+				// 	port_ss2 = s1->server.ssPort_recv;
+				// 	printf("Found server for path %s\n", pathThird);
+				// 	sprintf(concatenatedstring, "Found server for path %s", pathThird);
+				// 	logmessage = concatenatedstring;
+				// 	loggingfunction();
+
+				// 	printf("IP: %s\n", ip_Address_ss2);
+				// 	sprintf(concatenatedstring, "IP: %s", ip_Address_ss2);
+				// 	logmessage = concatenatedstring;
+				// 	loggingfunction();
+
+				// 	printf("Port: %d\n", port_ss2);
+				// 	sprintf(concatenatedstring, "Port: %d", port_ss2);
+				// 	logmessage = concatenatedstring;
+				// 	loggingfunction();
+					
+				// }			
 
 				// char ip_Address_ss2[16];
 				// int port_ss2;
