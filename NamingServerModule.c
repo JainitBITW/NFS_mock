@@ -792,6 +792,7 @@ void* handleClientInput(void* socketDesc)
 	int readSize;
 	while(1)
 	{
+		memset(buffer, '\0', sizeof(buffer));
 		if((readSize = recv(sock, buffer, sizeof(buffer), 0)) > 0)
 		{
 			strip(buffer);
@@ -871,6 +872,7 @@ void* handleClientInput(void* socketDesc)
 				{
 					// send the port and ip address back to the client
 					char reply[1024];
+					memset(reply, '\0', sizeof(reply));
 					sprintf(reply, "%s %d", s->server.ipAddress, s->server.clientPort);
 
 					if(send(sock, reply, strlen(reply), 0) < 0)

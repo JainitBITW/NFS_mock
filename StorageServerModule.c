@@ -567,6 +567,8 @@ void* executeClientRequest(void* arg)
 	int clientSocket = threadArg->socket;
 
 	char command[PATH_MAX], path[PATH_MAX];
+	memset(command, '\0', sizeof(command));
+	memset(path, '\0', sizeof(path));
 	sscanf(request, "%s %s", command, path);
 
 	printf("Command: %s %s\n", command, path);
@@ -584,6 +586,7 @@ void* executeClientRequest(void* arg)
 		else
 		{
 			char fileContent[4096]; // Adjust size as needed
+			memset(fileContent, '\0', sizeof(fileContent));
 			size_t bytesRead = fread(fileContent, 1, sizeof(fileContent) - 1, file);
 			if(ferror(file))
 			{
@@ -618,6 +621,8 @@ void* executeClientRequest(void* arg)
 
 			struct tm *tm;
 			char last_modified[30], last_accessed[30];
+			memset(last_accessed, '\0', sizeof(last_accessed));
+			memset(last_modified, '\0', sizeof(last_modified));
 
 			// Convert last modification time
 			tm = localtime(&statbuf.st_mtime);
@@ -630,6 +635,9 @@ void* executeClientRequest(void* arg)
 
 			char response[PATH_MAX];
 			char permissions[11];
+			// set memory     
+			memset(response, '\0', sizeof(response));
+			memset(permissions, '\0', sizeof(permissions));
 
 			// Convert st_mode to a permissions string
 			snprintf(permissions,
@@ -663,6 +671,7 @@ void* executeClientRequest(void* arg)
 	else if(strcmp(command, "WRITE") == 0)
 	{
 		char content[4096]; // Adjust size as needed
+		memset(content, '\0', sizeof(content));
 		sscanf(request, "%*s %*s %[^\t\n]", content); // Reads the content part of the request
 
 		FILE* file = fopen(path, "w");
@@ -673,7 +682,7 @@ void* executeClientRequest(void* arg)
 		}
 		else
 		{
-			size_t bytesWritten = fwrite(content, 1, strlen(content), file);
+			size_t bytesWritten = fwrite(content,sizeof(char),strlen(content),file);
 			if(ferror(file))
 			{
 				perror("Write error");
@@ -681,8 +690,10 @@ void* executeClientRequest(void* arg)
 			}
 			else
 			{
-				char response[PATH_MAX];
+				char response[1024];
+				memset(response, '\0', sizeof(response));
 				snprintf(response, sizeof(response), "Written %ld bytes to %s", bytesWritten, path);
+				printf("Written %ld bytes to %s\n", bytesWritten, path);
 				send(clientSocket, response, strlen(response), 0);
 			}
 			fclose(file);
@@ -1489,6 +1500,7 @@ void* handleClientConnections(void* args)
 
 		// Execute the Command in a new thread so that SS is always listening for new connections
 		ThreadArg* arg = malloc(sizeof(ThreadArg));
+		memset(arg->request, '\0', sizeof(arg->request));
 		read(new_socket, arg->request, sizeof(arg->request));
 		arg->socket = new_socket;
 

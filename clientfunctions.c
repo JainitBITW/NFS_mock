@@ -20,7 +20,8 @@ void clientRead(int clientSocket)
     send(clientSocket, request, strlen(request), 0);
 
     // receive the response from the Naming Server
-    char response[100];
+    char response[10000];
+    memset(response, '\0', sizeof(response));
     recv(clientSocket, response, sizeof(response), 0);
 
     if (strcmp(response, "File not Found") == 0)
@@ -89,6 +90,7 @@ void clientWrite(int clientSocket)
 
     // receive response from Naming Server
     char response[100];
+    memset(response, '\0', sizeof(response));
     recv(clientSocket, response, sizeof(response), 0);
     printf("SEnten\n");
     if (strcmp(response, "File not Found") == 0)
